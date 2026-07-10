@@ -1,0 +1,296 @@
+/* RESET E CORES GLOBAIS (TEMA ESCURO) */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #1a1a1a; /* Cinza Escuro */
+    color: #f5f5f5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.app-container {
+    background-color: #262626; /* Cinza um pouco mais claro para contraste */
+    width: 100%;
+    max-width: 500px;
+    border-radius: 8px;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    border: 1px solid #d4af37; /* Borda Dourada */
+}
+
+/* Ocultar Abas */
+.hidden {
+    display: none !important;
+}
+
+/* HEADER */
+.app-header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.logo-7 {
+    font-size: 32pt;
+    font-weight: bold;
+    color: #a60000; /* Vermelho */
+    text-shadow: 2px 2px 0px #d4af37; /* Sombra Dourada */
+    margin-bottom: 5px;
+}
+
+h1 {
+    font-size: 16pt;
+    color: #d4af37; /* Dourado */
+    letter-spacing: 1px;
+}
+
+.sub-logo {
+    font-size: 10pt;
+    color: #aaa;
+    margin-top: 2px;
+}
+
+/* FORMULÁRIOS */
+.input-group {
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+}
+
+.input-group label {
+    font-size: 9.5pt;
+    color: #d4af37; /* Dourado */
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.input-group input, .input-group select {
+    background-color: #333;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 10pt;
+    outline: none;
+}
+
+.input-group input:focus, .input-group select:focus {
+    border-color: #d4af37;
+}
+
+/* BOTÕES DOURADOS COM LETRAS PRETAS */
+.btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 10.5pt;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 10px;
+}
+
+.btn-primary, .btn-success {
+    background-color: #d4af37; /* Dourado */
+    color: #000000; /* Letras Pretas */
+}
+
+.btn-primary:hover, .btn-success:hover {
+    background-color: #aa8c2c;
+}
+
+.btn-logout {
+    background-color: #a60000; /* Vermelho */
+    color: #fff;
+}
+
+.btn-logout:hover {
+    background-color: #7a0000;
+}
+
+.aviso-cadastro {
+    font-size: 8.5pt;
+    color: #999;
+}
+
+/* MENU DE ABAS */
+.abas-menu {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #d4af37;
+    padding-bottom: 8px;
+    overflow-x: auto;
+}
+
+.btn-aba {
+    flex: 1;
+    background: #333;
+    border: 1px solid #555;
+    color: #ccc;
+    padding: 8px 5px;
+    font-size: 9pt;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.btn-aba.ativo {
+    background-color: #d4af37; /* Dourado */
+    color: #000; /* Letras Pretas */
+    border-color: #d4af37;
+}
+
+/* CARROSSEL E SELEÇÃO */
+.calendario-topo-container {
+    background: #333;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    border-left: 4px solid #a60000;
+}
+
+.carrossel-dias {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #1a1a1a;
+    padding: 15px;
+    border-radius: 6px;
+    margin: 15px 0;
+    border: 1px solid #444;
+}
+
+.btn-seta {
+    background: none;
+    border: none;
+    color: #d4af37;
+    font-size: 16pt;
+    cursor: pointer;
+}
+
+.dia-box {
+    text-align: center;
+    width: 100%;
+}
+
+.dia-box h3 {
+    font-size: 11pt;
+    color: #fff;
+    margin-bottom: 10px;
+}
+
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
+    max-width: 180px;
+    margin: 0 auto;
+}
+
+.checkbox-group label {
+    font-size: 10pt;
+    cursor: pointer;
+}
+
+.prazo-encerrado {
+    display: block;
+    font-size: 8.5pt;
+    color: #a60000;
+    margin-top: 8px;
+    font-weight: bold;
+}
+
+/* TABELAS INTERNAS DE PREVIEW */
+.card {
+    background: #333;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+}
+
+.card h2 {
+    font-size: 11pt;
+    color: #d4af37;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #444;
+    padding-bottom: 5px;
+}
+
+.tabela-preview {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    background: #222;
+    font-size: 9pt;
+}
+
+.tabela-preview th, .tabela-preview td {
+    border: 1px solid #444;
+    padding: 6px;
+    text-align: center;
+    color: #fff;
+}
+
+.tabela-preview th {
+    background: #111;
+    color: #d4af37;
+}
+
+/* ADMIN LIST */
+.admin-user-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #222;
+    padding: 8px;
+    margin-bottom: 6px;
+    border-radius: 4px;
+    border-left: 3px solid #d4af37;
+}
+
+.admin-user-info {
+    display: flex;
+    flex-direction: column;
+    font-size: 9pt;
+}
+
+.admin-user-info span {
+    color: #888;
+    font-size: 8pt;
+}
+
+.select-role-admin {
+    background: #333;
+    color: #fff;
+    border: 1px solid #555;
+    font-size: 8.5pt;
+    padding: 3px;
+    border-radius: 3px;
+}
+
+.militar-saudacao {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 9.5pt;
+    margin-bottom: 10px;
+    background: #333;
+    padding: 6px 12px;
+    border-radius: 20px;
+}
+
+.user-badge {
+    color: #d4af37;
+    font-weight: bold;
+}

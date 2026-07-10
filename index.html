@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Arranchamento - 7º RC Mec</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- TELA DE LOGIN -->
+    <div id="tela-login" class="app-container">
+        <div class="app-header">
+            <div class="logo-7">7</div>
+            <h1>ARRANCHAMENTO</h1>
+            <div class="sub-logo">7º RC Mec</div>
+        </div>
+
+        <form id="form-login" onsubmit="event.preventDefault(); efetuarAcesso();">
+            <div class="input-group">
+                <label for="login-reparticao">Esquadrão / Subdivisão</label>
+                <select id="login-reparticao">
+                    <option value="Fanfarra">Fanfarra</option>
+                    <option value="1º Esqd">1º Esqd C Mec</option>
+                    <option value="2º Esqd">2º Esqd C Mec</option>
+                    <option value="3º Esqd">3º Esqd C Mec</option>
+                    <option value="Esqd C Ap">Esqd Comando e Apoio</option>
+                    <option value="ST/SGT">ST / SGT</option>
+                    <option value="OFICIAIS">Oficiais</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label for="login-usuario">Nome de Guerra</label>
+                <input type="text" id="login-usuario" placeholder="Ex: Sgt Silva" required>
+            </div>
+
+            <div class="input-group">
+                <label for="login-senha">Senha</label>
+                <input type="password" id="login-senha" placeholder="Sua senha" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Entrar / Cadastrar</button>
+        </form>
+        <div class="aviso-cadastro" style="text-align: center; margin-top: 15px;">
+            * Se for seu primeiro acesso, a conta será criada automaticamente com a senha digitada.
+            <br><br>
+            <span style="font-size: 8pt; color: #d4af37; display: block; margin-top: 5px;">
+                1ª versão, criado por 1º Sgt Marcos Damer Simas de Oliveira em 10/07/2026
+            </span>
+        </div>
+    </div>
+
+    <!-- PAINEL DO SISTEMA -->
+    <div id="painel-sistema" class="app-container hidden">
+        <div class="app-header">
+            <div class="militar-saudacao">
+                <div>Olá, <span id="militar-logado" class="user-badge"></span></div>
+                <div id="nivel-badge-container"></div>
+            </div>
+            <h1>PAINEL DE CONTROLE</h1>
+        </div>
+
+        <!-- Calendário Superior Global -->
+        <div class="calendario-topo-container">
+            <label for="data-sistema-global">🗓️ Data de Visualização/Relatório:</label>
+            <input type="date" id="data-sistema-global" onchange="sincronizarDataGlobal()">
+        </div>
+
+        <!-- Menu de Abas por Botões -->
+        <div class="abas-menu">
+            <button id="btn-aba-arranchamento" class="btn-aba ativo" onclick="alternarAba('arranchamento')">Arranchar</button>
+            <button id="btn-aba-relatorio" class="btn-aba" onclick="alternarAba('relatorio')">Nominal</button>
+            <button id="btn-aba-senha" class="btn-aba" onclick="alternarAba('senha')">Alterar Senha</button>
+            <button id="btn-aba-furriel" class="btn-aba furriel-only hidden" onclick="alternarAba('furriel')">Furriel</button>
+            <button id="btn-aba-admin" class="btn-aba adm-only hidden" onclick="alternarAba('admin')">Admin</button>
+        </div>
+
+        <!-- ABA 1: SOLICITAÇÃO DE ARRANCHAMENTO -->
+        <div id="conteudo-arranchamento" class="aba-conteudo">
+            <form id="form-arranchamento" onsubmit="salvarArranchamento(event);">
+                <div class="carrossel-dias">
+                    <button type="button" class="btn-seta" onclick="mudarDiaCarrossel(-1)">◀</button>
+                    <div class="carrossel-janela" id="container-dias-dinamicos">
+                        <!-- Gerado Dinamicamente -->
+                    </div>
+                    <button type="button" class="btn-seta" onclick="mudarDiaCarrossel(1)">▶</button>
+                </div>
+                <button type="submit" class="btn btn-success">💾 Confirmar Escolhas</button>
+            </form>
+        </div>
+
+        <!-- ABA 2: RELATÓRIO NOMINAL SIMPLES -->
+        <div id="conteudo-relatorio" class="aba-conteudo hidden">
+            <div class="card">
+                <h2>Visualização por Subdivisão</h2>
+                <div class="input-group">
+                    <label for="relatorio-subdivisao">Filtrar Esquadrão:</label>
+                    <select id="relatorio-subdivisao" onchange="atualizarVisualizacaoNominal()">
+                        <option value="Fanfarra">Fanfarra</option>
+                        <option value="1º Esqd">1º Esqd C Mec</option>
+                        <option value="2º Esqd">2º Esqd C Mec</option>
+                        <option value="3º Esqd">3º Esqd C Mec</option>
+                        <option value="Esqd C Ap">Esqd Comando e Apoio</option>
+                        <option value="ST/SGT">ST / SGT</option>
+                        <option value="OFICIAIS">Oficiais</option>
+                    </select>
+                </div>
+                <div class="preview-tabela-container" id="tabela-preview-nominal"></div>
+            </div>
+        </div>
+
+        <!-- ABA MODIFICAR SENHA -->
+        <div id="conteudo-senha" class="aba-conteudo hidden">
+            <div class="card">
+                <h2>Alterar Senha de Acesso</h2>
+                <div class="input-group">
+                    <label for="senha-nova">Nova Senha:</label>
+                    <input type="password" id="senha-nova" placeholder="Digite a nova senha">
+                </div>
+                <button class="btn btn-primary" onclick="alterarMinhaSenha()">💾 Salvar Nova Senha</button>
+            </div>
+        </div>
+
+        <!-- ABA 3: FURRIEL -->
+        <div id="conteudo-furriel" class="aba-conteudo hidden furriel-only">
+            <div class="card">
+                <h2>Imprimir Arranchamento Oficial</h2>
+                <div class="input-group">
+                    <label for="furriel-subdivisao">Selecione o Esquadrão:</label>
+                    <select id="furriel-subdivisao" onchange="atualizarVisualizacaoFurriel()">
+                        <option value="" selected disabled>-- Selecione --</option>
+                        <option value="Fanfarra">Fanfarra</option>
+                        <option value="1º Esqd">1º Esqd C Mec</option>
+                        <option value="2º Esqd">2º Esqd C Mec</option>
+                        <option value="3º Esqd">3º Esqd C Mec</option>
+                        <option value="Esqd C Ap">Esqd Comando e Apoio</option>
+                        <option value="ST/SGT">ST / SGT</option>
+                        <option value="OFICIAIS">Oficiais</option>
+                    </select>
+                </div>
+                <div id="zona-impressao-furriel" class="hidden">
+                    <div class="preview-tabela-container" id="tabela-preview-furriel" style="margin-bottom:15px;"></div>
+                    <button class="btn btn-primary" onclick="gerarRelatorioSeparatedPDF('furriel-subdivisao')">🖨️ Exportar PDF Oficial</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA 4: GERENCIAMENTO ADMINISTRATIVO -->
+        <div id="conteudo-admin" class="aba-conteudo hidden adm-only">
+            <!-- SEÇÃO: CADASTRAR NOVO USUÁRIO -->
+            <div class="card">
+                <h2>Incluir Novo Usuário</h2>
+                <div class="input-group">
+                    <label for="admin-novo-usuario">Nome de Guerra (Com ou sem Grad.)</label>
+                    <input type="text" id="admin-novo-usuario" placeholder="Ex: Cb Santini">
+                </div>
+                <div class="input-group">
+                    <label for="admin-novo-esquadrao">Fração / Subdivisão</label>
+                    <select id="admin-novo-esquadrao">
+                        <option value="Fanfarra">Fanfarra</option>
+                        <option value="1º Esqd">1º Esqd C Mec</option>
+                        <option value="2º Esqd">2º Esqd C Mec</option>
+                        <option value="3º Esqd">3º Esqd C Mec</option>
+                        <option value="Esqd C Ap">Esqd Comando e Apoio</option>
+                        <option value="ST/SGT">ST / SGT</option>
+                        <option value="OFICIAIS">Oficiais</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="admin-novo-nivel">Nível de Sistema</label>
+                    <select id="admin-novo-nivel">
+                        <option value="Militar">Usuário</option>
+                        <option value="Furriel">Furriel</option>
+                        <option value="Administrador">Administrador</option>
+                    </select>
+                </div>
+                <button class="btn btn-success" style="margin-top:5px;" onclick="incluirUsuarioViaAdmin()">➕ Adicionar Usuário</button>
+            </div>
+
+            <!-- SEÇÃO: LISTAR / ALTERAR / DELETAR -->
+            <div class="card">
+                <h2>Controle de Nível de Acesso</h2>
+                <div class="input-group">
+                    <label for="admin-filtro-esquadrao">Filtrar por Fração:</label>
+                    <select id="admin-filtro-esquadrao" onchange="renderizarListaDeUsuariosParaAdmin()">
+                        <option value="TODOS">Todos os usuários</option>
+                        <option value="Fanfarra">Fanfarra</option>
+                        <option value="1º Esqd">1º Esqd C Mec</option>
+                        <option value="2º Esqd">2º Esqd C Mec</option>
+                        <option value="3º Esqd">3º Esqd C Mec</option>
+                        <option value="Esqd C Ap">Esqd Comando e Apoio</option>
+                        <option value="ST/SGT">ST / SGT</option>
+                        <option value="OFICIAIS">Oficiais</option>
+                    </select>
+                </div>
+                <div class="admin-users-list" id="lista-gerenciamento-usuarios" style="margin-bottom: 20px;"></div>
+                
+                <h2>Imprimir via Painel Master</h2>
+                <div class="input-group">
+                    <label for="admin-subdivisao-print">Selecione para Imprimir Direct:</label>
+                    <select id="admin-subdivisao-print">
+                        <option value="Fanfarra">Fanfarra</option>
+                        <option value="1º Esqd">1º Esqd C Mec</option>
+                        <option value="2º Esqd">2º Esqd C Mec</option>
+                        <option value="3º Esqd">3º Esqd C Mec</option>
+                        <option value="Esqd C Ap">Esqd Comando e Apoio</option>
+                        <option value="ST/SGT">ST / SGT</option>
+                        <option value="OFICIAIS">Oficiais</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" style="margin-bottom: 20px;" onclick="gerarRelatorioSeparatedPDF('admin-subdivisao-print')">🖨️ Imprimir Arranchamento</button>
+
+                <!-- CONEXÃO MOBILE VIA QR CODE -->
+                <h2>Acesso Mobile</h2>
+                <button class="btn btn-primary" style="background: #5d2596; border-color: #4a1c7a;" onclick="gerarQRCodeConexao()">📱 Gerar QRCode de Acesso</button>
+                <div id="container-qrcode" style="text-align: center; margin-top: 15px; display: none;">
+                    <p style="font-size: 9pt; color: #fff; margin-bottom: 8px;">Escaneie com a câmera do celular para abrir o sistema:</p>
+                    <img id="img-qrcode" src="" alt="QR Code" style="border: 4px solid #fff; border-radius: 5px; background: #fff;">
+                    <p id="txt-url-qrcode" style="font-size: 8pt; color: #d4af37; margin-top: 5px; font-family: monospace;"></p>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn btn-logout" onclick="fazerLogout()">🔒 Sair do Sistema</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
