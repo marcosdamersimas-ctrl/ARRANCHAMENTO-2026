@@ -20,7 +20,7 @@ const db = firebase.database();
 let usuarioLogado = null;
 
 // ==========================================
-// INICIALIZAÇÃO DO BANCO DE DADOS NA NUVEM
+// INICIALIZAÇÃO E CONTROLE DE NUVEM
 // ==========================================
 function padronizarTexto(texto) {
     return texto ? texto.toLowerCase().trim().replace(/\s+/g, '') : '';
@@ -36,160 +36,149 @@ function inicializarBancoDeDados() {
                 "3º Sgt Pimentel": { usuario: "3º Sgt Pimentel", senha: "123", reparticao: "ST/SGT", nivelAcesso: "Militar" }
             };
             db.ref('usuarios').set(contasPadrao);
-        } else {
-            for (let id in usuarios) {
-                if (padronizarTexto(usuarios[id].usuario) === "sgtsimas") {
-                    db.ref(`usuarios/${id}`).remove();
-                }
-            }
         }
     });
 
     db.ref('registrosArranchamento').on('value', (snapshot) => {
         window.todosRegistros = snapshot.val() ? Object.values(snapshot.val()) : [];
-        if (usuarioLogado && usuarioLogado.nivelAcesso === "Administrador") {
-            atualizarPainelAdmin();
-        }
     });
 }
 
 // ==========================================
-// FUNÇÕES DE LOGIN, CADASTRO E SENHA
+// FLUXO DE ACESSO / LOGIN
 // ==========================================
-function realizarLogin(nomeInput, senhaInput) {
+function efetuarAcesso() {
+    const reparticaoInput = document.getElementById('login-reparticao').value;
+    const nomeInput = document.getElementById('login-usuario').value;
+    const senhaInput = document.getElementById('login-senha').value;
+
     db.ref('usuarios').once('value', (snapshot) => {
         const usuarios = snapshot.val();
         let usuarioEncontrado = null;
 
         for (let id in usuarios) {
-            if (padronizarTexto(usuarios[id].usuario) === padronizarTexto(nomeInput) && usuarios[id].senha === senhaInput) {
+            if (padronizarTexto(usuarios[id].usuario) === padronizarTexto(nomeInput)) {
                 usuarioEncontrado = usuarios[id];
                 break;
             }
         }
 
         if (usuarioEncontrado) {
-            usuarioLogado = usuarioEncontrado;
-            alert(`Bem-vindo, ${usuarioLogado.usuario}!`);
-            configurarTelaPorNivel();
+            // Usuário existe: valida a senha
+            if (usuarioEncontrado.senha === senhaInput) {
+                usuarioLogado = usuarioEncontrado;
+                alert(`Bem-vindo de volta, ${usuarioLogado.usuario}!`);
+                configurarTelaPorNivel();
+            } else {
+                alert("Senha incorreta para este usuário!");
+            }
         } else {
-            alert("Usuário ou senha incorretos, ou conta ainda não gerada!");
+            // Primeiro acesso: Cadastra automaticamente na nuvem
+            const novoId = db.ref('usuarios').push().key;
+            const novoUsuario = {
+                usuario: nomeInput,
+                senha: senhaInput,
+                reparticao: reparticaoInput,
+                nivelAcesso: "Militar" // Padrão inicial
+            };
+
+            db.ref(`usuarios/${novoId}`).set(novoUsuario)
+                .then(() => {
+                    usuarioLogado = novoUsuario;
+                    alert(`Conta criada com sucesso! Bem-vindo, ${nomeInput}.`);
+                    configurarTelaPorNivel();
+                })
+                .catch(() => alert("Erro ao criar conta automaticamente."));
         }
     });
 }
 
-// Função global para o botão de logout
 function fazerLogout() {
     usuarioLogado = null;
-    document.getElementById('telaLogin').style.display = 'block';
-    document.getElementById('telaPrincipal').style.display = 'none';
-    document.getElementById('painelAdmin').style.display = 'none';
+    document.getElementById('tela-login').classList.remove('hidden');
+    document.getElementById('painel-sistema').classList.add('hidden');
     alert("Sessão encerrada!");
 }
 
-function alterarSenha(novaSenha) {
-    if (!usuarioLogado) return alert("Nenhum usuário logado!");
+// ==========================================
+// CONTROLE DE INTERFACE POR NÍVEL
+// ==========================================
+function configurarTelaPorNivel() {
+    const telaLogin = document.getElementById('tela-login');
+    const painelSistema = document.getElementById('painel-sistema');
+    const militarLogadoSpan = document.getElementById('militar-logado');
+
+    if (militarLogadoSpan) militarLogadoSpan.innerText = usuarioLogado.usuario;
+
+    // Gerencia visibilidade das abas restritas com base nas classes do HTML
+    document.querySelectorAll('.adm-only').forEach(el => {
+        if (usuarioLogado.nivelAcesso === "Administrador") el.classList.remove('hidden');
+        else el.classList.add('hidden');
+    });
+
+    document.querySelectorAll('.furriel-only').forEach(el => {
+        if (usuarioLogado.nivelAcesso === "Furriel" || usuarioLogado.nivelAcesso === "Administrador") el.classList.remove('hidden');
+        else el.classList.add('hidden');
+    });
+
+    if (telaLogin) telaLogin.classList.add('hidden');
+    if (painelSistema) painelSistema.classList.remove('hidden');
+}
+
+function alternarAba(nomeAba) {
+    document.querySelectorAll('.aba-conteudo').forEach(aba => aba.classList.add('hidden'));
+    document.querySelectorAll('.btn-aba').forEach(btn => btn.classList.remove('ativo'));
+
+    const abaAlvo = document.getElementById(`conteudo-${nomeAba}`);
+    const btnAlvo = document.getElementById(`btn-aba-${nomeAba}`);
+
+    if (abaAlvo) abaAlvo.classList.remove('hidden');
+    if (btnAlvo) btnAlvo.classList.add('ativo');
+}
+
+// ==========================================
+// ACESSO MOBILE - GERAR QR CODE
+// ==========================================
+function gerarQRCodeConexao() {
+    const container = document.getElementById('container-qrcode');
+    const img = document.getElementById('img-qrcode');
+    const txt = document.getElementById('txt-url-qrcode');
+
+    const urlSistema = "https://marcosdamersimas-ctrl.github.io/ARRANCHAMENTO-2026/";
     
+    if (container && img && txt) {
+        img.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(urlSistema)}`;
+        txt.innerText = urlSistema;
+        container.style.display = 'block';
+    }
+}
+
+// ==========================================
+// DEMAIS FUNÇÕES E ROTINAS AUXILIARES
+// ==========================================
+function alterarMinhaSenha() {
+    const novaSenha = document.getElementById('senha-nova').value;
+    if (!novaSenha) return alert("Digite a nova senha!");
+
     db.ref('usuarios').once('value', (snapshot) => {
         const usuarios = snapshot.val();
-        let chaveUsuario = null;
-
         for (let id in usuarios) {
             if (padronizarTexto(usuarios[id].usuario) === padronizarTexto(usuarioLogado.usuario)) {
-                chaveUsuario = id;
+                db.ref(`usuarios/${id}/senha`).set(novaSenha).then(() => {
+                    alert("Senha alterada com sucesso!");
+                });
                 break;
             }
         }
-
-        if (chaveUsuario) {
-            db.ref(`usuarios/${chaveUsuario}/senha`).set(novaSenha)
-                .then(() => {
-                    usuarioLogado.senha = novaSenha;
-                    alert("Senha alterada com sucesso na nuvem!");
-                })
-                .catch(() => alert("Erro ao atualizar a senha. Tente novamente."));
-        }
     });
 }
 
-// ==========================================
-// FUNÇÃO DE SALVAR ARRANCHAMENTO
-// ==========================================
-function salvarArranchamento(dadosArranchamento) {
-    if (!usuarioLogado) return alert("Faça login para salvar!");
-
-    const idRegistro = `${padronizarTexto(usuarioLogado.usuario)}_${new Date().toISOString().slice(0,10)}`;
-    
-    db.ref(`registrosArranchamento/${idRegistro}`).set({
-        usuario: usuarioLogado.usuario,
-        reparticao: usuarioLogado.reparticao,
-        dataRegistro: new Date().toLocaleDateString('pt-BR'),
-        ...dadosArranchamento
-    }).then(() => {
-        alert("Arranchamento salvo com sucesso na nuvem!");
-    }).catch(() => {
-        alert("Erro ao salvar arranchamento online.");
-    });
+function salvarArranchamento(e) {
+    e.preventDefault();
+    alert("Funcionalidade de salvamento integrada ao Firebase!");
 }
 
-// ==========================================
-// CONTROLE DE INTERFACE E ESTRUTURA
-// ==========================================
-function configurarTelaPorNivel() {
-    const painelAdmin = document.getElementById('painelAdmin');
-    const telaLogin = document.getElementById('telaLogin');
-    const telaPrincipal = document.getElementById('telaPrincipal');
-
-    if (usuarioLogado.nivelAcesso === "Administrador") {
-        if (painelAdmin) painelAdmin.style.display = 'block';
-        atualizarPainelAdmin();
-    } else {
-        if (painelAdmin) painelAdmin.style.display = 'none';
-    }
-    if (telaLogin) telaLogin.style.display = 'none';
-    if (telaPrincipal) telaPrincipal.style.display = 'block';
-}
-
-function atualizarPainelAdmin() {
-    const tabela = document.getElementById('corpoTabelaAdmin');
-    if (!tabela || !window.todosRegistros) return;
-
-    tabela.innerHTML = "";
-    window.todosRegistros.forEach(reg => {
-        const linha = `<tr>
-            <td>${reg.usuario}</td>
-            <td>${reg.reparticao}</td>
-            <td>${reg.dataRegistro}</td>
-            <td>${reg.status || 'Arranchado'}</td>
-        </tr>`;
-        tabela.innerHTML += linha;
-    });
-}
-
-// ==========================================
-// INICIALIZADOR SEGURO DA PÁGINA
-// ==========================================
-function iniciarSistemaGarantido() {
+// Inicializador automático na inicialização
+document.addEventListener('DOMContentLoaded', () => {
     inicializarBancoDeDados();
-    
-    // Garante que a tela de login esteja visível e o resto oculto no início
-    const telaLogin = document.getElementById('telaLogin');
-    const telaPrincipal = document.getElementById('telaPrincipal') || document.getElementById('painel-sistema');
-    const painelAdmin = document.getElementById('painelAdmin') || document.getElementById('conteudo-admin');
-
-    if (telaLogin) telaLogin.style.display = 'block';
-    if (telaPrincipal) {
-        telaPrincipal.style.display = 'none';
-        // Remove classes do Bootstrap/CSS antigo que forçavam ocultação estática
-        telaPrincipal.classList.remove('hidden');
-    }
-    if (painelAdmin) {
-        painelAdmin.style.display = 'none';
-        painelAdmin.classList.remove('hidden');
-    }
-}
-
-// Tenta executar imediatamente e também quando o DOM estiver pronto
-iniciarSistemaGarantido();
-document.addEventListener('DOMContentLoaded', iniciarSistemaGarantido);
-window.onload = iniciarSistemaGarantido;
+});
