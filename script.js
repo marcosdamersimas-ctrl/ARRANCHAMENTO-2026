@@ -27,11 +27,8 @@ function padronizarTexto(texto) {
 }
 
 function inicializarBancoDeDados() {
-    // Escuta os usuários cadastrados na nuvem em tempo real
     db.ref('usuarios').on('value', (snapshot) => {
         let usuarios = snapshot.val();
-        
-        // Se a nuvem estiver vazia, cria as contas padrão iniciais
         if (!usuarios) {
             const contasPadrao = {
                 "1º Sgt Simas": { usuario: "1º Sgt Simas", senha: "Damer1986@", reparticao: "ST/SGT", nivelAcesso: "Administrador" },
@@ -40,7 +37,6 @@ function inicializarBancoDeDados() {
             };
             db.ref('usuarios').set(contasPadrao);
         } else {
-            // Remove contas fantasmas ou residuais
             for (let id in usuarios) {
                 if (padronizarTexto(usuarios[id].usuario) === "sgtsimas") {
                     db.ref(`usuarios/${id}`).remove();
@@ -49,7 +45,6 @@ function inicializarBancoDeDados() {
         }
     });
 
-    // Escuta os registros de arranchamento em tempo real
     db.ref('registrosArranchamento').on('value', (snapshot) => {
         window.todosRegistros = snapshot.val() ? Object.values(snapshot.val()) : [];
         if (usuarioLogado && usuarioLogado.nivelAcesso === "Administrador") {
@@ -81,6 +76,15 @@ function realizarLogin(nomeInput, senhaInput) {
             alert("Usuário ou senha incorretos, ou conta ainda não gerada!");
         }
     });
+}
+
+// Função global para o botão de logout
+function fazerLogout() {
+    usuarioLogado = null;
+    document.getElementById('telaLogin').style.display = 'block';
+    document.getElementById('telaPrincipal').style.display = 'none';
+    document.getElementById('painelAdmin').style.display = 'none';
+    alert("Sessão encerrada!");
 }
 
 function alterarSenha(novaSenha) {
@@ -132,14 +136,18 @@ function salvarArranchamento(dadosArranchamento) {
 // CONTROLE DE INTERFACE E ESTRUTURA
 // ==========================================
 function configurarTelaPorNivel() {
+    const painelAdmin = document.getElementById('painelAdmin');
+    const telaLogin = document.getElementById('telaLogin');
+    const telaPrincipal = document.getElementById('telaPrincipal');
+
     if (usuarioLogado.nivelAcesso === "Administrador") {
-        document.getElementById('painelAdmin').style.display = 'block';
+        if (painelAdmin) painelAdmin.style.display = 'block';
         atualizarPainelAdmin();
     } else {
-        document.getElementById('painelAdmin').style.display = 'none';
+        if (painelAdmin) painelAdmin.style.display = 'none';
     }
-    document.getElementById('telaLogin').style.display = 'none';
-    document.getElementById('telaPrincipal').style.display = 'block';
+    if (telaLogin) telaLogin.style.display = 'none';
+    if (telaPrincipal) telaPrincipal.style.display = 'block';
 }
 
 function atualizarPainelAdmin() {
@@ -158,7 +166,30 @@ function atualizarPainelAdmin() {
     });
 }
 
-// Inicializa o banco ao carregar o documento
-document.addEventListener('DOMContentLoaded', () => {
+// ==========================================
+// INICIALIZADOR SEGURO DA PÁGINA
+// ==========================================
+function iniciarSistemaGarantido() {
     inicializarBancoDeDados();
-});
+    
+    // Garante que a tela de login esteja visível e o resto oculto no início
+    const telaLogin = document.getElementById('telaLogin');
+    const telaPrincipal = document.getElementById('telaPrincipal') || document.getElementById('painel-sistema');
+    const painelAdmin = document.getElementById('painelAdmin') || document.getElementById('conteudo-admin');
+
+    if (telaLogin) telaLogin.style.display = 'block';
+    if (telaPrincipal) {
+        telaPrincipal.style.display = 'none';
+        // Remove classes do Bootstrap/CSS antigo que forçavam ocultação estática
+        telaPrincipal.classList.remove('hidden');
+    }
+    if (painelAdmin) {
+        painelAdmin.style.display = 'none';
+        painelAdmin.classList.remove('hidden');
+    }
+}
+
+// Tenta executar imediatamente e também quando o DOM estiver pronto
+iniciarSistemaGarantido();
+document.addEventListener('DOMContentLoaded', iniciarSistemaGarantido);
+window.onload = iniciarSistemaGarantido;
