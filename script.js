@@ -132,10 +132,13 @@ function salvarArranchamento(dadosArranchamento) {
 // FUNÇÃO DO BOTÃO GERAR QR CODE
 // ==========================================
 function configurarBotaoQRCode() {
-    const btnQRCode = document.getElementById('btnGerarQRCode') || document.querySelector('.btn-qrcode') || document.querySelector('.btn-primary');
+    // Procura especificamente pelo botão que tem a ID ou classe correta do QR Code
+    const btnQRCode = document.getElementById('btnGerarQRCode') || document.querySelector('.btn-qrcode');
     
+    // IMPORTANTE: Removemos o seletor genérico '.btn-primary' para não dar conflito com o botão de entrar/login
     if (btnQRCode) {
-        btnQRCode.addEventListener('click', () => {
+        btnQRCode.addEventListener('click', (e) => {
+            e.preventDefault(); // Evita qualquer comportamento inesperado na página
             const urlSistema = "https://marcosdamersimas-ctrl.github.io/ARRANCHAMENTO-2026/";
             const urlGerador = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(urlSistema)}`;
             window.open(urlGerador, '_blank');
