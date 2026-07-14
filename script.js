@@ -794,23 +794,30 @@ function excluirUsuario(usuarioID, nomeMilitar) {
 // SISTEMA DE QR CODE E IMPRESSÃO DE ACESSO
 // =========================================================================
 function gerarQRCodeConexao() {
-    const urlSistema = window.location.href;
-    const qrCodeUrl = `https://chart.googleapis.com/chart?chs=250x250&cht=qr&chl=${encodeURIComponent(urlSistema)}&choe=UTF-8`;
-    
-    // Resgata os elementos que já existem no seu HTML
-    const containerQR = document.getElementById('container-qrcode');
-    const imgQR = document.getElementById('img-qrcode');
-    const txtURL = document.getElementById('txt-url-qrcode');
+    try {
+        const urlSistema = window.location.href;
+        // API alternativa e super estável para gerar o QR Code
+        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(urlSistema)}`;
+        
+        const containerQR = document.getElementById('container-qrcode');
+        const imgQR = document.getElementById('img-qrcode');
+        const txtURL = document.getElementById('txt-url-qrcode');
 
-    if (containerQR && imgQR) {
-        // Alimenta a imagem e o texto com a URL
+        if (!containerQR || !imgQR) {
+            console.error("Elementos HTML do QR Code não foram encontrados na página.");
+            return alert("Erro interno: Elementos do QR Code não encontrados no layout.");
+        }
+
+        // Aplica a imagem e o texto
         imgQR.src = qrCodeUrl;
         if (txtURL) {
             txtURL.innerText = urlSistema;
         }
         
-        // Torna o container visível (muda o display: none para block)
+        // Exibe o container de forma visível e flexível
         containerQR.style.display = 'block';
+        containerQR.style.visibility = 'visible';
+        containerQR.style.opacity = '1';
 
         // Evita duplicar o botão de impressão se o usuário clicar mais de uma vez
         let btnImprimir = document.getElementById('btn-imprimir-qrcode-dinamico');
@@ -818,9 +825,6 @@ function gerarQRCodeConexao() {
             btnImprimir = document.createElement('button');
             btnImprimir.id = 'btn-imprimir-qrcode-dinamico';
             btnImprimir.type = 'button';
-            btnImprimir.className = 'btn';
-            
-            // Estilização para combinar com o layout do seu painel
             btnImprimir.style.marginTop = '15px';
             btnImprimir.style.width = '100%';
             btnImprimir.style.maxWidth = '250px';
@@ -834,20 +838,22 @@ function gerarQRCodeConexao() {
             btnImprimir.style.cursor = 'pointer';
             btnImprimir.innerText = '🖨️ Imprimir QR Code';
             
-            // Define a ação de clique do botão
             btnImprimir.onclick = function() {
                 imprimirQRCodeOficial(qrCodeUrl);
             };
 
             containerQR.appendChild(btnImprimir);
         }
+    } catch (error) {
+        console.error("Erro ao gerar QR Code:", error);
+        alert("Erro ao processar o QR Code: " + error.message);
     }
 }
 
 function imprimirQRCodeOficial(urlImagemQR) {
     const janelaImpressao = window.open('', '_blank');
     if (!janelaImpressao) {
-        return alert("Libere os pop-ups do navegador para poder imprimir!");
+        return alert("Por favor, libere os pop-ups do navegador para poder imprimir!");
     }
 
     janelaImpressao.document.write(`
