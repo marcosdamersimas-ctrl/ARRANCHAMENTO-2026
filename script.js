@@ -747,20 +747,41 @@ function inicializarSeletorPermissoes() {
             snapshot.forEach((childSnapshot) => {
                 const dados = childSnapshot.val();
                 
-                // Mapeia todas as variações possíveis para encontrar o Nome de Guerra ou Identificação
-                const nomeIdentificado = dados.nomeGuerra || dados.usuario || dados.nomeMilitar || dados.nome || childSnapshot.key || "Sem Nome";
+                // === IMPRESSÃO PARA DESCOBRIR A CHAVE CORRETA NO CONSOLE ===
+                console.log("Dados do Militar do Firebase:", childSnapshot.key, dados);
+                
+                // Tenta mapear exaustivamente todas as chaves possíveis de nome
+                const nomeIdentificado = 
+                    dados.nome_guerra || 
+                    dados.nomeGuerra || 
+                    dados.guerra ||
+                    dados.nome_guerra_militar ||
+                    dados.usuario || 
+                    dados.username ||
+                    dados.nomeMilitar || 
+                    dados.nome || 
+                    childSnapshot.key || 
+                    "Sem Nome";
+                
+                // Tenta mapear exaustivamente todas as chaves possíveis de nível/role
+                const nivelAtual = 
+                    dados.nivel || 
+                    dados.permissao || 
+                    dados.role || 
+                    dados.tipo ||
+                    "usuario";
                 
                 usuarios.push({
                     id: childSnapshot.key,
                     nome: nomeIdentificado,
-                    nivelAtual: dados.nivel || dados.permissao || dados.role || "usuario"
+                    nivelAtual: nivelAtual
                 });
             });
 
             // Ordena em ordem alfabética
             usuarios.sort((a, b) => a.nome.localeCompare(b.nome));
 
-            // Preenche o menu com os nomes corrigidos
+            // Preenche o menu
             usuarios.forEach((usr) => {
                 const opt = document.createElement('option');
                 opt.value = usr.id;
@@ -773,30 +794,6 @@ function inicializarSeletorPermissoes() {
     }).catch((err) => {
         console.error("Erro ao carregar militares no seletor:", err);
     });
-}
-
-// 2. Salva o novo nível escolhido direto no Firebase
-function salvarNovaPermissaoMilitar() {
-    const militarId = document.getElementById('select-militar-permissoes').value;
-    const novoNivel = document.getElementById('select-nivel-permissoes').value;
-
-    if (!militarId) {
-        return alert("Por favor, selecione um militar na lista antes de salvar!");
-    }
-
-    if (confirm(`Deseja realmente alterar a permissão deste militar para "${novoNivel.toUpperCase()}"?`)) {
-        // Atualiza o campo 'nivel' (ou ajuste para 'role'/'permissao' se seu banco usar outra chave)
-        db.ref('usuarios/' + militarId).update({
-            nivel: novoNivel
-        }).then(() => {
-            alert("Permissão atualizada com sucesso!");
-            // Recarrega o seletor para mostrar a lista atualizada
-            inicializarSeletorPermissoes();
-        }).catch((err) => {
-            console.error("Erro ao salvar nova permissão:", err);
-            alert("Erro ao salvar permissão: " + err.message);
-        });
-    }
 }
 
 // Executar a inicialização do seletor sempre que o painel administrativo for carregado
