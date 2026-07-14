@@ -1,5 +1,5 @@
 // =========================================================================
-// CONFIGURAÇÃO DO FIREBASE (BANCO DE DADOS - PADRÃO V8)
+// CONFIGURAÇÃO DO FIREBASE (BANCO DE DADOS)
 // =========================================================================
 const firebaseConfig = {
     apiKey: "AIzaSyCJ9wwSIMg_t9pYKrX99Tc3y58_Yjk_Bo",
@@ -12,10 +12,8 @@ const firebaseConfig = {
     measurementId: "G-STZQVFCJ2K"
 };
 
-// Inicializa com segurança evitando re-inicialização caso o script recarregue
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
+// Inicializa o Firebase v10 Compat
+firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 // Variáveis Globais de Controle
@@ -42,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.todosRegistros.push(dados);
         });
         
-        // Mantém atualizadas as views na tela do usuário logado
+        // Atualiza as tabelas se estiverem abertas
         atualizarVisualizacaoNominal();
         atualizarVisualizacaoFurriel();
     }, (error) => {
@@ -691,7 +689,7 @@ function renderizarListaDeUsuariosParaAdmin() {
         container.innerHTML = '';
         
         snapshot.forEach(filho => {
-            const user = childData = filho.val();
+            const user = filho.val();
             
             if (filtro !== 'TODOS' && padronizarTexto(user.reparticao) !== padronizarTexto(filtro)) {
                 return;
