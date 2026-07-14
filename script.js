@@ -796,8 +796,9 @@ function excluirUsuario(usuarioID, nomeMilitar) {
 function gerarQRCodeConexao() {
     try {
         const urlSistema = window.location.href;
-        // API alternativa e super estável para gerar o QR Code
-        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(urlSistema)}`;
+        
+        // Usando a API alternativa ultra-rápida e sem bloqueios de CORS:
+        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(urlSistema)}`;
         
         const containerQR = document.getElementById('container-qrcode');
         const imgQR = document.getElementById('img-qrcode');
@@ -808,16 +809,17 @@ function gerarQRCodeConexao() {
             return alert("Erro interno: Elementos do QR Code não encontrados no layout.");
         }
 
-        // Aplica a imagem e o texto
+        // Altera as propriedades para garantir que a imagem renderize com o tamanho correto
+        imgQR.style.width = "150px";
+        imgQR.style.height = "150px";
         imgQR.src = qrCodeUrl;
+        
         if (txtURL) {
             txtURL.innerText = urlSistema;
         }
         
-        // Exibe o container de forma visível e flexível
+        // Exibe o container
         containerQR.style.display = 'block';
-        containerQR.style.visibility = 'visible';
-        containerQR.style.opacity = '1';
 
         // Evita duplicar o botão de impressão se o usuário clicar mais de uma vez
         let btnImprimir = document.getElementById('btn-imprimir-qrcode-dinamico');
