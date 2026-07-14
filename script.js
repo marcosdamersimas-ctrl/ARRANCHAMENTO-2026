@@ -648,6 +648,11 @@ function gerarRelatorioSeparatedPDF(idSelectElement) {
 
     janelaImpressao.document.close();
 }
+
+// =========================================================================
+// ABA DO ADMIN - GERAÇÃO DE TABELA E IMPRESSÃO (SEM ALTERAR O FURRIEL)
+// =========================================================================
+
 function atualizarVisualizacaoAdmin() {
     const container = document.getElementById('tabela-preview-admin');
     const filtroSub = document.getElementById('admin-subdivisao')?.value;
@@ -709,6 +714,7 @@ function atualizarVisualizacaoAdmin() {
         `;
     }
 }
+
 function gerarRelatorioAdminPDF(idSelectElement) {
     const filtroSub = document.getElementById(idSelectElement)?.value;
     if (!filtroSub) return alert("Selecione um Esquadrão para exportar!");
