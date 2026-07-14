@@ -1,15 +1,15 @@
-// ==========================================
+// =========================================================================
 // CONFIGURAÇÃO DO FIREBASE (BANCO DE DADOS)
-// ==========================================
+// =========================================================================
 const firebaseConfig = {
-  apiKey: "AIzaSyCJ9wWsIMG_t9pY9KrX99TC3y58_Yjk_Bo",
-  authDomain: "arranchamento-7rcmec.firebaseapp.com",
-  databaseURL: "https://arranchamento-7rcmec-default-rtdb.firebaseio.com",
-  projectId: "arranchamento-7rcmec",
-  storageBucket: "arranchamento-7rcmec.firebasestorage.app",
-  messagingSenderId: "284122873915",
-  appId: "1:284122873915:web:175f3f8b1d9f7f3626dc1e",
-  measurementId: "G-STZQVFCJ2K"
+    apiKey: "AIzaSyCJ9wwSIMg_t9pYKrX99Tc3y58_Yjk_Bo",
+    authDomain: "arranchamento-7rcmec.firebaseapp.com",
+    databaseURL: "https://arranchamento-7rcmec-default-rtdb.firebaseio.com",
+    projectId: "arranchamento-7rcmec",
+    storageBucket: "arranchamento-7rcmec.appspot.com",
+    messagingSenderId: "284122873915",
+    appId: "1:284122873915:web:175f3f8b1d9f7f362dc1e",
+    measurementId: "G-STZQVFCJ2K"
 };
 
 // Inicializa o Firebase
@@ -20,10 +20,11 @@ const db = firebase.database();
 let usuarioLogado = null;
 let dataSelecionadaGlobal = new Date().toISOString().slice(0, 10);
 let indiceCarrosselInicio = 0;
+window.todosRegistros = []; // Armazena todos os registros sincronizados do banco
 
-// ==========================================
+// =========================================================================
 // INICIALIZAÇÃO DO SISTEMA
-// ==========================================
+// =========================================================================
 document.addEventListener('DOMContentLoaded', () => {
     // Define a data de hoje no calendário global
     const inputDataGlobal = document.getElementById('data-sistema-global');
@@ -31,323 +32,357 @@ document.addEventListener('DOMContentLoaded', () => {
         inputDataGlobal.value = dataSelecionadaGlobal;
     }
     
-    inicializarBancoDeDados();
-    gerarDiasCarrosselDinamico();
-});
-
-function padronizarTexto(texto) {
-    if (!texto) return '';
-    return texto
-        .toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove acentos
-        .replace(/[^a-z0-9]/g, "")                      // Remove espaços, pontos, traços e o 'º'
-        .trim();
-}
-function inicializarBancoDeDados() {
-    // Escuta usuários cadastrados
-    db.ref('usuarios').on('value', (snapshot) => {
-        let usuarios = snapshot.val();
-        if (!usuarios) {
-            const contasPadrao = {
-                "1º Sgt Simas": { usuario: "1º Sgt Simas", senha: "Damer1986@", reparticao: "ST/SGT", nivelAcesso: "Administrador" },
-                "3º Sgt Silva": { usuario: "3º Sgt Silva", senha: "123", reparticao: "ST/SGT", nivelAcesso: "Militar" },
-                "3º Sgt Pimentel": { usuario: "3º Sgt Pimentel", senha: "123", reparticao: "ST/SGT", nivelAcesso: "Militar" }
-            };
-            db.ref('usuarios').set(contasPadrao);
-        }
-    });
-
-    // Escuta os registros de arranchamento em tempo real
-    db.ref('registrosArranchamento').on('value', (snapshot) => {
-        window.todosRegistros = snapshot.val() ? Object.values(snapshot.val()) : [];
+    // Ouve em tempo real as mudanças no banco para manter os relatórios atualizados automaticamente
+    db.ref('arranchamento').on('value', (snapshot) => {
+        window.todosRegistros = [];
+        snapshot.forEach((filho) => {
+            const dados = filho.val();
+            // Mantém a chave original do registro para auditoria se necessário
+            dados.idRegistro = filho.key;
+            window.todosRegistros.push(dados);
+        });
+        
+        // Atualiza todas as tabelas ativas na tela para refletirem os dados novos imediatamente
         atualizarVisualizacaoNominal();
         atualizarVisualizacaoFurriel();
     });
+});
+
+// Padronização robusta de texto para evitar erros de acentuação, maiúsculas e espaços (ex: "Silva", "Sgt Silva")
+function padronizarTexto(texto) {
+    if (!texto) return '';
+    return texto.toString().toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove acentos
+        .trim();
 }
 
-// ==========================================
-// FLUXO DE ACESSO / LOGIN E CADASTRO
-// ==========================================
-function efetuarAcesso() {
-    const reparticaoInput = document.getElementById('login-reparticao').value;
-    const nomeInput = document.getElementById('login-usuario').value;
-    const senhaInput = document.getElementById('login-senha').value;
+// Sincroniza a data global ao alterar o input superior
+function sincronizarDataGlobal() {
+    const inputDataGlobal = document.getElementById('data-sistema-global');
+    if (inputDataGlobal && inputDataGlobal.value) {
+        dataSelecionadaGlobal = inputDataGlobal.value;
+        renderizarDiasCarrossel();
+        atualizarVisualizacaoNominal();
+        atualizarVisualizacaoFurriel();
+    }
+}
 
-    if (!nomeInput || !senhaInput) {
-        return alert("Por favor, preencha todos os campos!");
+// =========================================================================
+// SISTEMA DE ACESSO (LOGIN / AUTO-CADASTRO)
+// =========================================================================
+function efetuarAcesso() {
+    const subdivisao = document.getElementById('login-reparticao').value;
+    const nomeGuerra = document.getElementById('login-usuario').value.trim();
+    const senhaDigitada = document.getElementById('login-senha').value;
+
+    if (!nomeGuerra || !senhaDigitada) {
+        return alert("Por favor, preencha todos os campos para prosseguir.");
     }
 
-    db.ref('usuarios').once('value', (snapshot) => {
-        const usuarios = snapshot.val();
-        let usuarioEncontrado = null;
+    const usuarioID = padronizarTexto(nomeGuerra);
+    const refUsuario = db.ref('usuarios/' + usuarioID);
 
-        for (let id in usuarios) {
-            if (padronizarTexto(usuarios[id].usuario) === padronizarTexto(nomeInput)) {
-                usuarioEncontrado = usuarios[id];
-                break;
-            }
-        }
-
-        if (usuarioEncontrado) {
-            if (usuarioEncontrado.senha === senhaInput) {
-                usuarioLogado = usuarioEncontrado;
-                alert(`Bem-vindo, ${usuarioLogado.usuario}!`);
-                configurarTelaPorNivel();
+    refUsuario.once('value').then((snapshot) => {
+        if (snapshot.exists()) {
+            const dadosUser = snapshot.val();
+            if (dadosUser.senha === senhaDigitada) {
+                conectarUsuario(dadosUser);
             } else {
-                alert("Senha incorreta para este usuário!");
+                alert("Senha incorreta para este Nome de Guerra! Solicite alteração se necessário.");
             }
         } else {
-            // Autocadastro no primeiro acesso
-            const novoId = db.ref('usuarios').push().key;
-            const novoUsuario = {
-                usuario: nomeInput,
-                senha: senhaInput,
-                reparticao: reparticaoInput,
-                nivelAcesso: "Militar"
+            // Cadastro Automático no primeiro acesso
+            const novoMilitar = {
+                usuario: nomeGuerra,
+                reparticao: subdivisao,
+                senha: senhaDigitada,
+                nivel: "Militar" // Usuário padrão
             };
-
-            db.ref(`usuarios/${novoId}`).set(novoUsuario)
-                .then(() => {
-                    usuarioLogado = novoUsuario;
-                    alert(`Conta criada com sucesso! Bem-vindo, ${nomeInput}.`);
-                    configurarTelaPorNivel();
-                })
-                .catch(() => alert("Erro ao criar sua conta."));
+            refUsuario.set(novoMilitar).then(() => {
+                alert(`Militar ${nomeGuerra} cadastrado com sucesso no esquadrão/fraçao ${subdivisao}!`);
+                conectarUsuario(novoMilitar);
+            });
         }
     });
 }
 
-function fazerLogout() {
-    usuarioLogado = null;
-    document.getElementById('tela-login').classList.remove('hidden');
-    document.getElementById('painel-sistema').classList.add('hidden');
-    alert("Sessão encerrada!");
-}
-
-function configurarTelaPorNivel() {
-    const militarLogadoSpan = document.getElementById('militar-logado');
-    if (militarLogadoSpan) militarLogadoSpan.innerText = usuarioLogado.usuario;
-
-    // Gerencia botões de abas administrativas/furriel
-    document.querySelectorAll('.adm-only').forEach(el => {
-        if (usuarioLogado.nivelAcesso === "Administrador") el.classList.remove('hidden');
-        else el.classList.add('hidden');
-    });
-
-    document.querySelectorAll('.furriel-only').forEach(el => {
-        if (usuarioLogado.nivelAcesso === "Furriel" || usuarioLogado.nivelAcesso === "Administrador") el.classList.remove('hidden');
-        else el.classList.add('hidden');
-    });
-
-    // Atualiza badges visuais se houver
+function conectarUsuario(usuario) {
+    usuarioLogado = usuario;
+    document.getElementById('militar-logado').innerText = usuario.usuario;
+    
+    // Gerenciamento de crachás de nível
     const containerBadge = document.getElementById('nivel-badge-container');
-    if (containerBadge) {
-        containerBadge.innerHTML = `<span class="badge">${usuarioLogado.nivelAcesso}</span>`;
+    containerBadge.innerHTML = '';
+    
+    if (usuario.nivel === 'Administrador') {
+        containerBadge.innerHTML = '<span class="badge badge-admin">Master Admin</span>';
+    } else if (usuario.nivel === 'Furriel') {
+        containerBadge.innerHTML = '<span class="badge badge-furriel">Furriel</span>';
+    } else {
+        containerBadge.innerHTML = '<span class="badge badge-militar">Militar</span>';
     }
 
+    // Exibe abas de acordo com a autorização
+    const botoesFurriel = document.querySelectorAll('.furriel-only');
+    const botoesAdmin = document.querySelectorAll('.adm-only');
+
+    botoesFurriel.forEach(el => {
+        if (usuario.nivel === 'Furriel' || usuario.nivel === 'Administrador') {
+            el.classList.remove('hidden');
+        } else {
+            el.classList.add('hidden');
+        }
+    });
+
+    botoesAdmin.forEach(el => {
+        if (usuario.nivel === 'Administrador') {
+            el.classList.remove('hidden');
+        } else {
+            el.classList.add('hidden');
+        }
+    });
+
+    // Transiciona as telas
     document.getElementById('tela-login').classList.add('hidden');
     document.getElementById('painel-sistema').classList.remove('hidden');
-    
-    // FORÇA O CARROSSEL DE DIAS A GERAR NO MOMENTO DO LOGIN
-    gerarDiasCarrosselDinamico();
-    
+
+    // Inicializa a interface principal
+    renderizarDiasCarrossel();
     alternarAba('arranchamento');
-}
-
-function alternarAba(nomeAba) {
-    document.querySelectorAll('.aba-conteudo').forEach(aba => aba.classList.add('hidden'));
-    document.querySelectorAll('.btn-aba').forEach(btn => btn.classList.remove('ativo'));
-
-    const abaAlvo = document.getElementById(`conteudo-${nomeAba}`);
-    const btnAlvo = document.getElementById(`btn-aba-${nomeAba}`);
-
-    if (abaAlvo) abaAlvo.classList.remove('hidden');
-    if (btnAlvo) btnAlvo.classList.add('ativo');
-
-    if (nomeAba === 'admin') {
+    
+    if (usuario.nivel === 'Administrador') {
         renderizarListaDeUsuariosParaAdmin();
     }
 }
 
-// ==========================================
-// CONTROLE DO CARROSSEL DE DIAS E SALVAMENTO
-// ==========================================
-function gerarDiasCarrosselDinamico() {
-    const container = document.getElementById('container-dias-dinamicos');
-    if (!container) return;
+function fazerLogout() {
+    usuarioLogado = null;
+    document.getElementById('login-usuario').value = '';
+    document.getElementById('login-senha').value = '';
+    document.getElementById('painel-sistema').classList.add('hidden');
+    document.getElementById('tela-login').classList.remove('hidden');
+}
 
-    container.innerHTML = "";
-    
-    container.style.display = "flex";
-    container.style.flexDirection = "row";
-    container.style.overflowX = "hidden"; 
-    container.style.scrollBehavior = "smooth"; 
-    container.style.alignItems = "center";
-    container.style.justifyContent = "flex-start";
-    container.style.width = "100%";
+// =========================================================================
+// CONTROLE DE ABAS DO PAINEL
+// =========================================================================
+function alternarAba(abaDestino) {
+    // Esconde todas as abas
+    document.querySelectorAll('.aba-conteudo').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.btn-aba').forEach(el => el.classList.remove('ativo'));
 
-    const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-    const usuarioId = usuarioLogado ? padronizarTexto(usuarioLogado.usuario) : '';
-
-    db.ref('registrosArranchamento').once('value', (snapshot) => {
-        const registros = snapshot.val() || {};
-        const agora = new Date();
-
-        for (let i = 0; i < 7; i++) {
-            const dataFoco = new Date();
-            dataFoco.setDate(dataFoco.getDate() + i);
-            
-            const ano = dataFoco.getFullYear();
-            const mes = String(dataFoco.getMonth() + 1).padStart(2, '0');
-            const dia = String(dataFoco.getDate()).padStart(2, '0');
-            const dataStr = `${ano}-${mes}-${dia}`;
-            
-            const diaS = diasSemana[dataFoco.getDay()];
-            const diaM = dia;
-
-            const chaveRegistro = `${usuarioId}_${dataStr}`;
-            const dadosSalvos = registros[chaveRegistro] || { cafe: false, almoco: false, jantar: false };
-
-            // ==========================================
-            // CÁLCULO DA DATA/HORA LIMITE DE BLOQUEIO
-            // ==========================================
-            const limiteMudar = new Date(dataFoco);
-            limiteMudar.setDate(limiteMudar.getDate() - 1); // Um dia antes
-            limiteMudar.setHours(15, 30, 0, 0);            // 15:30
-
-            // Formata a data do bloqueio para exibição (DD/MM/AAAA)
-            const diaLim = String(limiteMudar.getDate()).padStart(2, '0');
-            const mesLim = String(limiteMudar.getMonth() + 1).padStart(2, '0');
-            const anoLim = limiteMudar.getFullYear();
-            const dataBloqueioFormatada = `${diaLim}/${mesLim}/${anoLim}`;
-
-            // O bloqueio acontece se o momento atual passou das 15:30 do dia anterior
-            const diaBloqueado = agora > limiteMudar;
-
-            const stringDisabled = diaBloqueado ? "disabled" : "";
-            const estiloLabel = diaBloqueado ? "opacity: 0.5; cursor: not-allowed;" : "cursor: pointer;";
-
-            const cardDia = document.createElement('div');
-            cardDia.className = "dia-card";
-            
-            cardDia.style.flex = "0 0 100%"; 
-            cardDia.style.width = "100%";
-            cardDia.style.boxSizing = "border-box";
-            cardDia.style.display = "flex";
-            cardDia.style.flexDirection = "column";
-            cardDia.style.alignItems = "center";
-            cardDia.style.justifyContent = "center";
-            cardDia.style.padding = "10px";
-
-            cardDia.innerHTML = `
-                <div class="dia-titulo" style="font-weight: bold; margin-bottom: 5px; font-size: 1.1rem; color: #f1c40f;">
-                    ${diaS} (${diaM})
-                </div>
-                <div class="opcoes-refeicao" style="display: flex; gap: 15px; justify-content: center; align-items: center; width: 100%;">
-                    <label style="display: inline-flex; align-items: center; gap: 5px; ${estiloLabel}">
-                        <input type="checkbox" name="c-${dataStr}" value="Cafe" ${dadosSalvos.cafe ? 'checked' : ''} ${stringDisabled}> ☕ Café
-                    </label>
-                    <label style="display: inline-flex; align-items: center; gap: 5px; ${estiloLabel}">
-                        <input type="checkbox" name="a-${dataStr}" value="Almoco" ${dadosSalvos.almoco ? 'checked' : ''} ${stringDisabled}> 🍽️ Almoço
-                    </label>
-                    <label style="display: inline-flex; align-items: center; gap: 5px; ${estiloLabel}">
-                        <input type="checkbox" name="j-${dataStr}" value="Jantar" ${dadosSalvos.jantar ? 'checked' : ''} ${stringDisabled}> 🍕 Jantar
-                    </label>
-                </div>
-                <!-- MENSAGEM DE BLOQUEIO ABAIXO DOS ÍCONES -->
-                ${diaBloqueado ? `
-                    <div style="font-size: 0.75rem; color: #e74c3c; margin-top: 8px; font-weight: bold; text-align: center;">
-                        ⚠️ Sistema bloqueado às 15:30 do dia ${dataBloqueioFormatada}
-                    </div>
-                ` : ''}
-            `;
-            container.appendChild(cardDia);
+    // Exibe a aba correta e ativa o respectivo botão
+    if (abaDestino === 'arranchamento') {
+        document.getElementById('conteudo-arranchamento').classList.remove('hidden');
+        document.getElementById('btn-aba-arranchamento').classList.add('ativo');
+    } else if (abaDestino === 'relatorio') {
+        document.getElementById('conteudo-relatorio').classList.remove('hidden');
+        document.getElementById('btn-aba-relatorio').classList.add('ativo');
+        // Define o filtro nominal padrão de acordo com o esquadrão do militar
+        const selectNominal = document.getElementById('relatorio-subdivisao');
+        if (selectNominal && usuarioLogado) {
+            selectNominal.value = usuarioLogado.reparticao;
         }
+        atualizarVisualizacaoNominal();
+    } else if (abaDestino === 'senha') {
+        document.getElementById('conteudo-senha').classList.remove('hidden');
+        document.getElementById('btn-aba-senha').classList.add('ativo');
+    } else if (abaDestino === 'furriel') {
+        document.getElementById('conteudo-furriel').classList.remove('hidden');
+        document.getElementById('btn-aba-furriel').classList.add('ativo');
+        atualizarVisualizacaoFurriel();
+    } else if (abaDestino === 'admin') {
+        document.getElementById('conteudo-admin').classList.remove('hidden');
+        document.getElementById('btn-aba-admin').classList.add('ativo');
+        renderizarListaDeUsuariosParaAdmin();
+    }
+}
+
+// =========================================================================
+// ALTERAR SENHA
+// =========================================================================
+function alterarMinhaSenha() {
+    const novaSenha = document.getElementById('senha-nova').value;
+    if (!novaSenha || novaSenha.trim() === '') {
+        return alert("Digite uma senha válida!");
+    }
+
+    const usuarioID = padronizarTexto(usuarioLogado.usuario);
+    db.ref('usuarios/' + usuarioID + '/senha').set(novaSenha).then(() => {
+        alert("Senha atualizada com sucesso!");
+        usuarioLogado.senha = novaSenha;
+        document.getElementById('senha-nova').value = '';
+    }).catch(err => {
+        alert("Erro ao salvar nova senha: " + err.message);
     });
 }
-function mudarDiaCarrossel(direcao) {
+
+// =========================================================================
+// CARROSSEL E SOLICITAÇÃO DE ARRANCHAMENTO (INCLUI BLOQUEIO DE HORÁRIOS)
+// =========================================================================
+function renderizarDiasCarrossel() {
     const container = document.getElementById('container-dias-dinamicos');
-    if (container) {
-        // Rola exatamente a largura de um card (100% da largura visível do contêiner)
-        const larguraCard = container.clientWidth;
-        container.scrollBy({
-            left: direcao * larguraCard,
-            behavior: 'smooth'
+    if (!container) return;
+    container.innerHTML = '';
+
+    const diasSemana = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+    const baseDate = new Date(dataSelecionadaGlobal + 'T00:00:00');
+
+    // Monta 5 dias a partir da data de visualização superior selecionada
+    for (let i = 0; i < 5; i++) {
+        let dataLoop = new Date(baseDate);
+        dataLoop.setDate(baseDate.getDate() + i + indiceCarrosselInicio);
+
+        const dataISO = dataLoop.toISOString().slice(0, 10);
+        const diaSemanaNome = diasSemana[dataLoop.getDay()];
+        const diaMes = dataLoop.getDate().toString().padStart(2, '0') + '/' + (dataLoop.getMonth() + 1).toString().padStart(2, '0');
+
+        // Cria o card correspondente ao dia
+        const cardDia = document.createElement('div');
+        cardDia.className = 'dia-card';
+        cardDia.innerHTML = `
+            <div class="dia-titulo">${diaSemanaNome}</div>
+            <div class="dia-subtitulo">${diaMes}</div>
+            
+            <div class="refeicao-opcao">
+                <label>
+                    <input type="checkbox" id="cafe-${dataISO}" data-refeicao="cafe" data-data="${dataISO}">
+                    ☕ Café da Manhã
+                </label>
+            </div>
+            <div class="refeicao-opcao">
+                <label>
+                    <input type="checkbox" id="almoco-${dataISO}" data-refeicao="almoco" data-data="${dataISO}">
+                    🍽️ Almoço
+                </label>
+            </div>
+            <div class="refeicao-opcao">
+                <label>
+                    <input type="checkbox" id="jantar-${dataISO}" data-refeicao="jantar" data-data="${dataISO}">
+                    🍲 Jantar
+                </label>
+            </div>
+        `;
+        container.appendChild(cardDia);
+
+        // Preenche os checkboxes já marcados no banco de dados para este militar
+        const refId = `${usuarioLogado.usuario}_${dataISO}`.replace(/[.#$\[\]]/g, "_");
+        db.ref('arranchamento/' + refId).once('value').then((snap) => {
+            if (snap.exists()) {
+                const dadosRef = snap.val();
+                const chkCafe = document.getElementById(`cafe-${dataISO}`);
+                const chkAlmoco = document.getElementById(`almoco-${dataISO}`);
+                const chkJantar = document.getElementById(`jantar-${dataISO}`);
+
+                if (chkCafe) chkCafe.checked = (dadosRef.cafe === true || dadosRef.cafe === "true");
+                if (chkAlmoco) chkAlmoco.checked = (dadosRef.almoco === true || dadosRef.almoco === "true");
+                if (chkJantar) chkJantar.checked = (dadosRef.jantar === true || dadosRef.jantar === "true");
+            }
         });
     }
 }
 
-function sincronizarDataGlobal() {
-    const inputDataGlobal = document.getElementById('data-sistema-global');
-    if (inputDataGlobal) {
-        dataSelecionadaGlobal = inputDataGlobal.value;
-        atualizarVisualizacaoNominal();
-        atualizarVisualizacaoFurriel();
-    }
+function mudarDiaCarrossel(passo) {
+    indiceCarrosselInicio += passo;
+    renderizarDiasCarrossel();
 }
 
 function salvarArranchamento(e) {
     e.preventDefault();
-    if (!usuarioLogado) return alert("Faça login primeiro!");
+    if (!usuarioLogado) return;
 
-    const escolhas = {};
-    const inputs = document.querySelectorAll('#container-dias-dinamicos input[type="checkbox"]');
-    
-    inputs.forEach(input => {
-        const dataKey = input.name.substring(2); 
-        const refeicao = input.value.toLowerCase(); 
+    // BLOQUEIO DE HORÁRIOS: Limite até as 08:30h do próprio dia corrente
+    const agora = new Date();
+    const horaAtualMinutos = (agora.getHours() * 60) + agora.getMinutes();
+    const dataHojeISO = agora.toISOString().slice(0, 10);
+    const limiteMinutos = (8 * 60) + 30; // 08:30 em minutos
 
-        if (!escolhas[dataKey]) {
-            escolhas[dataKey] = { cafe: false, almoco: false, jantar: false };
+    const checkboxes = document.querySelectorAll('#container-dias-dinamicos input[type="checkbox"]');
+    let gravacoesTerminadas = 0;
+    const totalParaGravar = checkboxes.length / 3; // Agrupados por data
+
+    // Organiza por data de serviço
+    const dadosPorData = {};
+    checkboxes.forEach(chk => {
+        const dataServico = chk.getAttribute('data-data');
+        const refeicao = chk.getAttribute('data-refeicao');
+        if (!dadosPorData[dataServico]) {
+            dadosPorData[dataServico] = {};
         }
-        if (input.checked) {
-            escolhas[dataKey][refeicao] = true;
-        }
+        dadosPorData[dataServico][refeicao] = chk.checked;
     });
 
-    const promises = Object.keys(escolhas).map(dataStr => {
-        // A chave do Firebase continua única por data/militar padronizado
-        const idRegistro = `${padronizarTexto(usuarioLogado.usuario)}_${dataStr}`;
-        return db.ref(`registrosArranchamento/${idRegistro}`).set({
-            usuario: usuarioLogado.usuario, // Grava o nome de exibição original (ex: "1º Sgt Simas")
+    for (const dataServico in dadosPorData) {
+        // Se tentar arranchar/desarranchar no dia de hoje e passar das 08:30h, o sistema impede a ação
+        if (dataServico === dataHojeISO && horaAtualMinutos > limiteMinutos) {
+            alert(`Atenção: O horário limite para alterações no dia de hoje expirou às 08:30h! Suas escolhas para a data de hoje (${dataServico}) foram ignoradas.`);
+            gravacoesTerminadas++;
+            if (gravacoesTerminadas === totalParaGravar) {
+                alert("Arranchamento atualizado nas demais datas liberadas!");
+                renderizarDiasCarrossel();
+            }
+            continue;
+        }
+
+        const refId = `${usuarioLogado.usuario}_${dataServico}`.replace(/[.#$\[\]]/g, "_");
+        
+        db.ref('arranchamento/' + refId).set({
+            usuario: usuarioLogado.usuario,
             reparticao: usuarioLogado.reparticao,
-            dataRegistro: dataStr,
-            cafe: escolhas[dataStr].cafe,
-            almoco: escolhas[dataStr].almoco,
-            jantar: escolhas[dataStr].jantar
+            dataRegistro: dataServico,
+            cafe: dadosPorData[dataServico]['cafe'],
+            almoco: dadosPorData[dataServico]['almoco'],
+            jantar: dadosPorData[dataServico]['jantar']
+        }).then(() => {
+            gravacoesTerminadas++;
+            if (gravacoesTerminadas === totalParaGravar) {
+                alert("Suas escolhas de arranchamento foram salvas com sucesso!");
+                renderizarDiasCarrossel();
+            }
         });
-    });
-
-    Promise.all(promises)
-        .then(() => {
-            alert("Arranchamento atualizado com sucesso!");
-            atualizarVisualizacaoNominal();
-            atualizarVisualizacaoFurriel();
-        })
-        .catch((error) => {
-            console.error(error);
-            alert("Erro ao salvar arranchamento na nuvem.");
-        });
+    }
 }
-// ==========================================
-// ABAS DE RELATÓRIO E VISUALIZAÇÃO
-// ==========================================
+
+// =========================================================================
+// ABA NOMINAL (VISUALIZAÇÃO DOS MILITARES E QUANTIDADE TOTAL DE ARRANCHADOS)
+// =========================================================================
 function atualizarVisualizacaoNominal() {
     const container = document.getElementById('tabela-preview-nominal');
-    const filtroSub = document.getElementById('relatorio-subdivisao')?.value;
-    if (!container || !window.todosRegistros) return;
+    const seletorFiltro = document.getElementById('relatorio-subdivisao');
+    if (!container || !seletorFiltro) return;
 
-    // Filtra pela data e repartição
+    const filtroSub = seletorFiltro.value;
+
+    // Filtra utilizando a padronização robusta de string
     const filtrados = window.todosRegistros.filter(reg => {
         return reg.dataRegistro === dataSelecionadaGlobal && 
                padronizarTexto(reg.reparticao) === padronizarTexto(filtroSub);
     });
 
+    // SOMA CIRÚRGICA DOS MILITARES ARRANCHADOS POR REFEIÇÃO
+    let totalCafe = 0;
+    let totalAlmoco = 0;
+    let totalJantar = 0;
+
+    filtrados.forEach(reg => {
+        if (reg.cafe === true || reg.cafe === "true") totalCafe++;
+        if (reg.almoco === true || reg.almoco === "true") totalAlmoco++;
+        if (reg.jantar === true || reg.jantar === "true") totalJantar++;
+    });
+
     let tabelaHTML = `
+        <div style="margin-bottom: 15px; padding: 10px; background: #222; border-left: 4px solid #d4af37; border-radius: 4px;">
+            <strong style="color: #d4af37;">Resumo Quantitativo (${filtroSub}):</strong> <br>
+            ☕ Café: <span style="font-weight: bold; color: #fff;">${totalCafe}</span> | 
+            🍽️ Almoço: <span style="font-weight: bold; color: #fff;">${totalAlmoco}</span> | 
+            🍲 Jantar: <span style="font-weight: bold; color: #fff;">${totalJantar}</span>
+        </div>
+
         <table class="tabela-sistema">
             <thead>
                 <tr>
-                    <th>Nome de Guerra</th>
+                    <th>Militar</th>
+                    <th>Subdivisão</th>
                     <th>Café</th>
                     <th>Almoço</th>
                     <th>Jantar</th>
@@ -357,20 +392,20 @@ function atualizarVisualizacaoNominal() {
     `;
 
     if (filtrados.length === 0) {
-        tabelaHTML += `<tr><td colspan="4" style="text-align:center;">Nenhum arranchamento para esta data.</td></tr>`;
+        tabelaHTML += `<tr><td colspan="5" style="text-align:center;">Nenhum militar arranchado nesta data.</td></tr>`;
     } else {
         filtrados.forEach(reg => {
-            // Garante leitura robusta de qualquer tipo de dado (booleano ou string)
             const cafeOk = reg.cafe === true || reg.cafe === "true";
             const almocoOk = reg.almoco === true || reg.almoco === "true";
             const jantarOk = reg.jantar === true || reg.jantar === "true";
 
             tabelaHTML += `
                 <tr>
-                    <td>${reg.usuario}</td>
-                    <td>${cafeOk ? '✅' : '❌'}</td>
-                    <td>${almocoOk ? '✅' : '❌'}</td>
-                    <td>${jantarOk ? '✅' : '❌'}</td>
+                    <td style="font-weight: bold; color: #d4af37;">${reg.usuario}</td>
+                    <td>${reg.reparticao}</td>
+                    <td style="text-align: center;">${cafeOk ? '✅' : '❌'}</td>
+                    <td style="text-align: center;">${almocoOk ? '✅' : '❌'}</td>
+                    <td style="text-align: center;">${jantarOk ? '✅' : '❌'}</td>
                 </tr>
             `;
         });
@@ -380,22 +415,48 @@ function atualizarVisualizacaoNominal() {
     container.innerHTML = tabelaHTML;
 }
 
+// =========================================================================
+// ABA FURRIEL (ATUALIZAÇÃO DA TABELA DE PREVIEW)
+// =========================================================================
 function atualizarVisualizacaoFurriel() {
     const container = document.getElementById('tabela-preview-furriel');
-    const filtroSub = document.getElementById('furriel-subdivisao')?.value;
+    const seletorFiltro = document.getElementById('furriel-subdivisao');
     const zonaImpressao = document.getElementById('zona-impressao-furriel');
     
-    if (!container || !window.todosRegistros || !filtroSub) return;
+    if (!container || !seletorFiltro) return;
+
+    const filtroSub = seletorFiltro.value;
+    if (!filtroSub) {
+        if (zonaImpressao) zonaImpressao.classList.add('hidden');
+        return;
+    }
 
     if (zonaImpressao) zonaImpressao.classList.remove('hidden');
 
-    // Filtra aplicando padronização de texto na subdivisão (ex: "st/sgt" virará "stsgt")
     const filtrados = window.todosRegistros.filter(reg => {
         return reg.dataRegistro === dataSelecionadaGlobal && 
                padronizarTexto(reg.reparticao) === padronizarTexto(filtroSub);
     });
 
+    // Cálculos de quantitativo do Furriel
+    let totalCafe = 0;
+    let totalAlmoco = 0;
+    let totalJantar = 0;
+
+    filtrados.forEach(reg => {
+        if (reg.cafe === true || reg.cafe === "true") totalCafe++;
+        if (reg.almoco === true || reg.almoco === "true") totalAlmoco++;
+        if (reg.jantar === true || reg.jantar === "true") totalJantar++;
+    });
+
     let tabelaHTML = `
+        <div style="margin-bottom: 15px; padding: 10px; background: #222; border-left: 4px solid #d4af37; border-radius: 4px; text-align: left;">
+            <strong style="color: #d4af37;">Valores Consolidados para Rancho (${filtroSub}):</strong> <br>
+            ☕ Café: <span style="font-weight: bold; color: #fff;">${totalCafe} arranchados</span> <br>
+            🍽️ Almoço: <span style="font-weight: bold; color: #fff;">${totalAlmoco} arranchados</span> <br>
+            🍲 Jantar: <span style="font-weight: bold; color: #fff;">${totalJantar} arranchados</span>
+        </div>
+
         <table class="tabela-sistema" id="tabela-furriel-oficial">
             <thead>
                 <tr>
@@ -410,10 +471,9 @@ function atualizarVisualizacaoFurriel() {
     `;
 
     if (filtrados.length === 0) {
-        tabelaHTML += `<tr><td colspan="5" style="text-align:center; padding: 12px;">Sem registros para esta data.</td></tr>`;
+        tabelaHTML += `<tr><td colspan="5" style="text-align:center; padding: 12px;">Nenhum militar arranchado nesta data.</td></tr>`;
     } else {
         filtrados.forEach(reg => {
-            // Conversão robusta para garantir que leia booleanos salvos de qualquer aparelho (celular ou PC)
             const cafeOk = reg.cafe === true || reg.cafe === "true";
             const almocoOk = reg.almoco === true || reg.almoco === "true";
             const jantarOk = reg.jantar === true || reg.jantar === "true";
@@ -432,296 +492,50 @@ function atualizarVisualizacaoFurriel() {
 
     tabelaHTML += `</tbody></table>`;
     container.innerHTML = tabelaHTML;
-
-    // Atualiza o container de botões de exportação para chamar a nova função que abre a aba branca
-    if (zonaImpressao) {
-        zonaImpressao.innerHTML = `
-            <button onclick="gerarRelatorioSeparatedPDF('furriel-subdivisao')" class="btn-primary" style="margin-top: 15px; width: 100%; padding: 10px; background-color: #f1c40f; color: #000; border: none; font-weight: bold; cursor: pointer; border-radius: 5px;">
-                🖨️ Exportar PDF Oficial
-            </button>
-        `;
-    }
 }
 
-// ==========================================
-// SEÇÃO ADMINISTRADOR (GERENCIAMENTO)
-// ==========================================
-function renderizarListaDeUsuariosParaAdmin() {
-    const container = document.getElementById('lista-gerenciamento-usuarios');
-    const filtroSub = document.getElementById('admin-filtro-esquadrao')?.value;
-    if (!container) return;
-
-    db.ref('usuarios').once('value', (snapshot) => {
-        const usuarios = snapshot.val();
-        container.innerHTML = "";
-
-        for (let id in usuarios) {
-            const user = usuarios[id];
-            if (filtroSub !== "TODOS" && user.reparticao !== filtroSub) continue;
-
-            const divUser = document.createElement('div');
-            divUser.className = "user-admin-card";
-            divUser.style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 6px; background: #222; border-radius: 4px;";
-            divUser.innerHTML = `
-                <span><strong>${user.usuario}</strong> (${user.reparticao}) - ${user.nivelAcesso}</span>
-                <div>
-                    <button class="btn btn-primary" style="padding: 2px 6px; font-size: 8pt;" onclick="promoverUsuario('${id}', '${user.nivelAcesso}')">Nível</button>
-                    <button class="btn btn-danger" style="padding: 2px 6px; font-size: 8pt; background: #c0392b;" onclick="deletarUsuario('${id}')">Deletar</button>
-                </div>
-            `;
-            container.appendChild(divUser);
-        }
-    });
-}
-
-function incluirUsuarioViaAdmin() {
-    const nome = document.getElementById('admin-novo-usuario').value;
-    const esquadrao = document.getElementById('admin-novo-esquadrao').value;
-    const nivel = document.getElementById('admin-novo-nivel').value;
-
-    if (!nome) return alert("Digite o nome do militar!");
-
-    const novoId = db.ref('usuarios').push().key;
-    db.ref(`usuarios/${novoId}`).set({
-        usuario: nome,
-        senha: "123", // Senha inicial padrão
-        reparticao: esquadrao,
-        nivelAcesso: nivel
-    }).then(() => {
-        alert("Militar cadastrado com sucesso!");
-        document.getElementById('admin-novo-usuario').value = "";
-        renderizarListaDeUsuariosParaAdmin();
-    });
-}
-
-function promoverUsuario(id, nivelAtual) {
-    const niveis = ["Militar", "Furriel", "Administrador"];
-    let proximoNivel = niveis[(niveis.indexOf(nivelAtual) + 1) % niveis.length];
-
-    db.ref(`usuarios/${id}/nivelAcesso`).set(proximoNivel).then(() => {
-        alert(`Nível de acesso alterado para: ${proximoNivel}`);
-        renderizarListaDeUsuariosParaAdmin();
-    });
-}
-
-function deletarUsuario(id) {
-    if (confirm("Tem certeza que deseja deletar este usuário permanentemente?")) {
-        db.ref(`usuarios/${id}`).remove().then(() => {
-            alert("Usuário excluído.");
-            renderizarListaDeUsuariosParaAdmin();
-        });
-    }
-}
-
-function alterarMinhaSenha() {
-    const novaSenha = document.getElementById('senha-nova').value;
-    if (!novaSenha) return alert("Digite a nova senha!");
-
-    db.ref('usuarios').once('value', (snapshot) => {
-        const usuarios = snapshot.val();
-        for (let id in usuarios) {
-            if (padronizarTexto(usuarios[id].usuario) === padronizarTexto(usuarioLogado.usuario)) {
-                db.ref(`usuarios/${id}/senha`).set(novaSenha).then(() => {
-                    alert("Senha altered com sucesso!");
-                    usuarioLogado.senha = novaSenha;
-                    document.getElementById('senha-nova').value = "";
-                });
-                break;
-            }
-        }
-    });
-}
-
-// ==========================================
-// IMPRESSÃO EM PDF E QR CODE
-// ==========================================
+// =========================================================================
+// GERAÇÃO DO PDF EXCLUSIVO (ATENDE TANTO AO FURRIEL QUANTO AO ADMIN)
+// =========================================================================
 function gerarRelatorioSeparatedPDF(idSelectElement) {
     const filtroSub = document.getElementById(idSelectElement)?.value;
     if (!filtroSub) return alert("Selecione um Esquadrão para exportar!");
 
-    // Busca a tabela que acabamos de gerar na tela
-    const tabelaHTML = document.getElementById('tabela-furriel-oficial')?.outerHTML;
-    if (!tabelaHTML) {
-        return alert("Nenhum dado disponível na tabela para imprimir!");
-    }
-
-    // Formata a data para DD/MM/AAAA
-    const partesData = dataSelecionadaGlobal.split('-');
-    const dataFormatada = `${partesData[2]}/${partesData[1]}/${partesData[0]}`;
-
-    // Abre uma nova janela limpa no navegador
-    const janelaImpressao = window.open('', '_blank');
-    if (!janelaImpressao) {
-        return alert("Por favor, libere os pop-ups no Firefox para gerar o documento!");
-    }
-
-    janelaImpressao.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Relatório de Arranchamento - ${filtroSub}</title>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    background-color: #ffffff !important;
-                    color: #000000 !important;
-                    padding: 40px;
-                    margin: 0;
-                }
-                .cabecalho {
-                    text-align: center;
-                    margin-bottom: 30px;
-                    border-bottom: 2px solid #000;
-                    padding-bottom: 15px;
-                }
-                .cabecalho h2 {
-                    margin: 0;
-                    font-size: 16pt;
-                    text-transform: uppercase;
-                }
-                .cabecalho h3 {
-                    margin: 5px 0 0 0;
-                    font-size: 12pt;
-                    font-weight: normal;
-                }
-                .tabela-sistema {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin-top: 25px;
-                }
-                .tabela-sistema th, .tabela-sistema td {
-                    border: 1px solid #000000 !important;
-                    padding: 10px;
-                    text-align: center;
-                    font-size: 11pt;
-                    color: #000000 !important;
-                    background-color: #ffffff !important;
-                }
-                .tabela-sistema th {
-                    background-color: #f2f2f2 !important;
-                    font-weight: bold;
-                }
-                .assinaturas {
-                    margin-top: 80px;
-                    display: flex;
-                    justify-content: space-around;
-                }
-                .campo-assinatura {
-                    text-align: center;
-                    width: 250px;
-                    border-top: 1px solid #000;
-                    padding-top: 5px;
-                    font-size: 10pt;
-                }
-                @media print {
-                    body { padding: 0; }
-                }
-            </style>
-        </head>
-        <body>
-            <div class="cabecalho">
-                <h2>7º Regimento de Cavalaria Mecanizado</h2>
-                <h3>Relatório Oficial de Arranchamento - Subdivisão: ${filtroSub}</h3>
-                <p><strong>Data de Referência:</strong> ${dataFormatada}</p>
-            </div>
-            
-            ${tabelaHTML}
-
-            <div class="assinaturas">
-                <div class="campo-assinatura">
-                    Sargento Furriel / Responsável
-                </div>
-                <div class="campo-assinatura">
-                    Fiscal de Dia / Oficial de Dia
-                </div>
-            </div>
-
-            <script>
-                window.onload = function() {
-                    window.print();
-                    setTimeout(function() { window.close(); }, 800);
-                };
-            <\/script>
-        </body>
-        </html>
-    `);
-
-    janelaImpressao.document.close();
-}
-
-// =========================================================================
-// ABA DO ADMIN - GERAÇÃO DE TABELA E IMPRESSÃO (SEM ALTERAR O FURRIEL)
-// =========================================================================
-
-function atualizarVisualizacaoAdmin() {
-    const container = document.getElementById('tabela-preview-admin');
-    const filtroSub = document.getElementById('admin-subdivisao')?.value;
-    const zonaImpressao = document.getElementById('zona-impressao-admin');
-    
-    if (!container || !window.todosRegistros || !filtroSub) return;
-
-    if (zonaImpressao) zonaImpressao.classList.remove('hidden');
-
-    // Filtra aplicando padronização de texto na subdivisão
+    // Filtra dinamicamente no momento da geração para evitar pegar sobras em cache
     const filtrados = window.todosRegistros.filter(reg => {
         return reg.dataRegistro === dataSelecionadaGlobal && 
                padronizarTexto(reg.reparticao) === padronizarTexto(filtroSub);
     });
 
-    let tabelaHTML = `
-        <table class="tabela-sistema" id="tabela-admin-oficial">
-            <thead>
-                <tr>
-                    <th style="border: 1px solid #ccc; padding: 8px;">Militar</th>
-                    <th style="border: 1px solid #ccc; padding: 8px;">Repartição</th>
-                    <th style="border: 1px solid #ccc; padding: 8px;">Café</th>
-                    <th style="border: 1px solid #ccc; padding: 8px;">Almoço</th>
-                    <th style="border: 1px solid #ccc; padding: 8px;">Jantar</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
+    let totalCafe = 0;
+    let totalAlmoco = 0;
+    let totalJantar = 0;
 
+    filtrados.forEach(reg => {
+        if (reg.cafe === true || reg.cafe === "true") totalCafe++;
+        if (reg.almoco === true || reg.almoco === "true") totalAlmoco++;
+        if (reg.jantar === true || reg.jantar === "true") totalJantar++;
+    });
+
+    let tabelaRows = '';
     if (filtrados.length === 0) {
-        tabelaHTML += `<tr><td colspan="5" style="text-align:center; padding: 12px;">Sem registros para esta data.</td></tr>`;
+        tabelaRows = `<tr><td colspan="5" style="text-align:center; padding: 12px;">Nenhum militar arranchado nesta data.</td></tr>`;
     } else {
         filtrados.forEach(reg => {
             const cafeOk = reg.cafe === true || reg.cafe === "true";
             const almocoOk = reg.almoco === true || reg.almoco === "true";
             const jantarOk = reg.jantar === true || reg.jantar === "true";
 
-            tabelaHTML += `
+            tabelaRows += `
                 <tr>
-                    <td style="border: 1px solid #ccc; padding: 8px; font-weight: bold;">${reg.usuario}</td>
-                    <td style="border: 1px solid #ccc; padding: 8px;">${reg.reparticao}</td>
-                    <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${cafeOk ? 'Sim' : 'Não'}</td>
-                    <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${almocoOk ? 'Sim' : 'Não'}</td>
-                    <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${jantarOk ? 'Sim' : 'Não'}</td>
+                    <td style="border: 1px solid #000; padding: 8px; font-weight: bold; text-align: left;">${reg.usuario}</td>
+                    <td style="border: 1px solid #000; padding: 8px;">${reg.reparticao}</td>
+                    <td style="border: 1px solid #000; padding: 8px;">${cafeOk ? 'Sim' : 'Não'}</td>
+                    <td style="border: 1px solid #000; padding: 8px;">${almocoOk ? 'Sim' : 'Não'}</td>
+                    <td style="border: 1px solid #000; padding: 8px;">${jantarOk ? 'Sim' : 'Não'}</td>
                 </tr>
             `;
         });
-    }
-
-    tabelaHTML += `</tbody></table>`;
-    container.innerHTML = tabelaHTML;
-
-    // Cria o botão de impressão apontando para a nova função exclusiva do Admin
-    if (zonaImpressao) {
-        zonaImpressao.innerHTML = `
-            <button onclick="gerarRelatorioAdminPDF('admin-subdivisao')" class="btn-primary" style="margin-top: 15px; width: 100%; padding: 10px; background-color: #f1c40f; color: #000; border: none; font-weight: bold; cursor: pointer; border-radius: 5px;">
-                🖨️ Exportar PDF Oficial (Admin)
-            </button>
-        `;
-    }
-}
-
-function gerarRelatorioAdminPDF(idSelectElement) {
-    const filtroSub = document.getElementById(idSelectElement)?.value;
-    if (!filtroSub) return alert("Selecione um Esquadrão para exportar!");
-
-    const tabelaHTML = document.getElementById('tabela-admin-oficial')?.outerHTML;
-    if (!tabelaHTML) {
-        return alert("Nenhum dado disponível na tabela para imprimir!");
     }
 
     const partesData = dataSelecionadaGlobal.split('-');
@@ -729,31 +543,31 @@ function gerarRelatorioAdminPDF(idSelectElement) {
 
     const janelaImpressao = window.open('', '_blank');
     if (!janelaImpressao) {
-        return alert("Por favor, libere os pop-ups no Firefox para gerar o documento!");
+        return alert("Por favor, habilite a abertura de pop-ups em seu navegador para imprimir!");
     }
 
     janelaImpressao.document.write(`
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Relatório de Arranchamento - ${filtroSub}</title>
+            <title>Arranchamento Oficial - ${filtroSub}</title>
             <style>
                 body {
                     font-family: Arial, sans-serif;
-                    background-color: #ffffff !important;
-                    color: #000000 !important;
-                    padding: 40px;
+                    background-color: #ffffff;
+                    color: #000000;
+                    padding: 30px;
                     margin: 0;
                 }
                 .cabecalho {
                     text-align: center;
-                    margin-bottom: 30px;
+                    margin-bottom: 25px;
                     border-bottom: 2px solid #000;
-                    padding-bottom: 15px;
+                    padding-bottom: 12px;
                 }
                 .cabecalho h2 {
                     margin: 0;
-                    font-size: 16pt;
+                    font-size: 15pt;
                     text-transform: uppercase;
                 }
                 .cabecalho h3 {
@@ -761,34 +575,45 @@ function gerarRelatorioAdminPDF(idSelectElement) {
                     font-size: 12pt;
                     font-weight: normal;
                 }
+                .consolidado-box {
+                    border: 1px solid #000;
+                    padding: 10px;
+                    margin-bottom: 20px;
+                    background-color: #f9f9f9;
+                    font-size: 11pt;
+                }
+                .consolidado-box strong {
+                    font-size: 12pt;
+                    text-transform: uppercase;
+                }
                 .tabela-sistema {
                     width: 100%;
                     border-collapse: collapse;
-                    margin-top: 25px;
+                    margin-top: 15px;
                 }
                 .tabela-sistema th, .tabela-sistema td {
-                    border: 1px solid #000000 !important;
-                    padding: 10px;
+                    border: 1px solid #000000;
+                    padding: 8px;
                     text-align: center;
-                    font-size: 11pt;
-                    color: #000000 !important;
-                    background-color: #ffffff !important;
+                    font-size: 10pt;
                 }
                 .tabela-sistema th {
-                    background-color: #f2f2f2 !important;
+                    background-color: #e6e6e6;
                     font-weight: bold;
+                    text-transform: uppercase;
                 }
                 .assinaturas {
-                    margin-top: 80px;
+                    margin-top: 60px;
                     display: flex;
-                    justify-content: space-around;
+                    justify-content: space-between;
                 }
                 .campo-assinatura {
                     text-align: center;
-                    width: 250px;
+                    width: 45%;
                     border-top: 1px solid #000;
                     padding-top: 5px;
                     font-size: 10pt;
+                    margin-top: 30px;
                 }
                 @media print {
                     body { padding: 0; }
@@ -799,10 +624,30 @@ function gerarRelatorioAdminPDF(idSelectElement) {
             <div class="cabecalho">
                 <h2>7º Regimento de Cavalaria Mecanizado</h2>
                 <h3>Relatório Oficial de Arranchamento - Subdivisão: ${filtroSub}</h3>
-                <p><strong>Data de Referência:</strong> ${dataFormatada}</p>
+                <p style="margin: 5px 0 0 0;"><strong>Data de Referência:</strong> ${dataFormatada}</p>
+            </div>
+
+            <div class="consolidado-box">
+                <strong>Resumo Consolidado para Controle do Rancho:</strong><br>
+                ☕ Café da Manhã: <strong>${totalCafe} arranchados</strong> | 
+                🍽️ Almoço: <strong>${totalAlmoco} arranchados</strong> | 
+                🍲 Jantar: <strong>${totalJantar} arranchados</strong>
             </div>
             
-            ${tabelaHTML}
+            <table class="tabela-sistema">
+                <thead>
+                    <tr>
+                        <th>Militar</th>
+                        <th>Repartição</th>
+                        <th>Café</th>
+                        <th>Almoço</th>
+                        <th>Jantar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tabelaRows}
+                </tbody>
+            </table>
 
             <div class="assinaturas">
                 <div class="campo-assinatura">
@@ -824,4 +669,111 @@ function gerarRelatorioAdminPDF(idSelectElement) {
     `);
 
     janelaImpressao.document.close();
+}
+
+// =========================================================================
+// GERENCIAMENTO ADMINISTRATIVO MASTER (GERIR CONTAS E QR CODE)
+// =========================================================================
+function incluirUsuarioViaAdmin() {
+    const nomeMilitar = document.getElementById('admin-novo-usuario').value.trim();
+    const esquadrao = document.getElementById('admin-novo-esquadrao').value;
+    const nivel = document.getElementById('admin-novo-nivel').value;
+
+    if (!nomeMilitar) {
+        return alert("Por favor, digite o Nome de Guerra!");
+    }
+
+    const usuarioID = padronizarTexto(nomeMilitar);
+    const refUser = db.ref('usuarios/' + usuarioID);
+
+    refUser.once('value').then(snapshot => {
+        if (snapshot.exists()) {
+            alert("Este Nome de Guerra já possui cadastro no banco de dados!");
+        } else {
+            // Cria a conta do militar com senha padrão "123"
+            refUser.set({
+                usuario: nomeMilitar,
+                reparticao: esquadrao,
+                nivel: nivel,
+                senha: "123"
+            }).then(() => {
+                alert(`Militar ${nomeMilitar} cadastrado com sucesso! Senha padrão: 123`);
+                document.getElementById('admin-novo-usuario').value = '';
+                renderizarListaDeUsuariosParaAdmin();
+            });
+        }
+    });
+}
+
+function renderizarListaDeUsuariosParaAdmin() {
+    const container = document.getElementById('lista-gerenciamento-usuarios');
+    const filtro = document.getElementById('admin-filtro-esquadrao').value;
+    if (!container) return;
+
+    db.ref('usuarios').once('value').then(snapshot => {
+        container.innerHTML = '';
+        
+        snapshot.forEach(filho => {
+            const user = filho.val();
+            
+            // Filtro por fração administrativa
+            if (filtro !== 'TODOS' && padronizarTexto(user.reparticao) !== padronizarTexto(filtro)) {
+                return;
+            }
+
+            const card = document.createElement('div');
+            card.className = 'admin-user-card';
+            card.style = 'background: #2a2a2a; padding: 10px; margin-bottom: 8px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; border-left: 3px solid #d4af37;';
+            card.innerHTML = `
+                <div>
+                    <strong style="color: #fff;">${user.usuario}</strong> 
+                    <span style="font-size: 9pt; color: #aaa;">(${user.reparticao})</span><br>
+                    <span style="font-size: 8pt; color: #d4af37;">Nível: ${user.nivel} | Senha: ${user.senha}</span>
+                </div>
+                <div style="display: flex; gap: 5px;">
+                    <button onclick="alterarNivelUsuario('${filho.key}', '${user.nivel}')" class="btn btn-warning" style="padding: 4px 8px; font-size: 8pt; cursor: pointer;">Mudar Nivel</button>
+                    <button onclick="deletarUsuario('${filho.key}')" class="btn btn-danger" style="padding: 4px 8px; font-size: 8pt; cursor: pointer; background: #c0392b; border: none; color: white;">Excluir</button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    });
+}
+
+function alterarNivelUsuario(chave, nivelAtual) {
+    let novoNivel = 'Militar';
+    if (nivelAtual === 'Militar') novoNivel = 'Furriel';
+    else if (nivelAtual === 'Furriel') novoNivel = 'Administrador';
+    else novoNivel = 'Militar';
+
+    db.ref('usuarios/' + chave + '/nivel').set(novoNivel).then(() => {
+        alert("Nível de acesso atualizado para " + novoNivel);
+        renderizarListaDeUsuariosParaAdmin();
+    });
+}
+
+function deletarUsuario(chave) {
+    if (confirm("Deseja realmente remover permanentemente este usuário do sistema?")) {
+        db.ref('usuarios/' + chave).remove().then(() => {
+            alert("Usuário excluído do banco.");
+            renderizarListaDeUsuariosParaAdmin();
+        });
+    }
+}
+
+// QR CODE INTEGRADO - Gerador automático de link do sistema
+function gerarQRCodeConexao() {
+    const container = document.getElementById('container-qrcode');
+    const imgQR = document.getElementById('img-qrcode');
+    const txtURL = document.getElementById('txt-url-qrcode');
+    
+    if (!container || !imgQR) return;
+
+    const urlAtual = window.location.href;
+    // Utiliza API internacional livre de renderização rápida de QR Codes
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(urlAtual)}`;
+
+    imgQR.src = qrUrl;
+    txtURL.innerText = urlAtual;
+    container.style.display = 'block';
 }
