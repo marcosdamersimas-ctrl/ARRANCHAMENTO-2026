@@ -61,7 +61,7 @@ function padronizarTexto(texto) {
     if (!texto) return '';
     return texto.toString().toLowerCase()
         .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove acentos
-        .replace(/[.\-_\/\sº°]/g, "") // remove caracteres especiais
+        .replace(/[.\-\[\]$#\/\sº°]/g, "") // remove caracteres especiais proibidos no Firebase
         .trim();
 }
 
@@ -206,7 +206,7 @@ function alterarMinhaSenha() {
 
     const usuarioID = padronizarTexto(usuarioLogado.usuario);
     db.ref('usuarios/' + usuarioID + '/senha').set(novaSenha).then(() => {
-        alert("Senha atualizada com sucesso!");
+        alert("Senha updated com sucesso!");
         usuarioLogado.senha = novaSenha;
         document.getElementById('senha-nova').value = '';
     }).catch(err => {
@@ -223,7 +223,7 @@ function renderizarDiasCarrossel() {
     
     const diasSemana = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
     
-    // Define a data que será exibida com base no controle de desvio do carrossel e na data global
+    // Configuração segura do fuso horário local
     const baseDate = new Date(dataSelecionadaGlobal + 'T00:00:00');
     let dataLoop = new Date(baseDate);
     dataLoop.setDate(baseDate.getDate() + indiceCarrosselInicio);
@@ -232,14 +232,11 @@ function renderizarDiasCarrossel() {
     const diaSemanaNome = diasSemana[dataLoop.getDay()];
     const diaMes = dataLoop.getDate().toString().padStart(2, '0') + '/' + (dataLoop.getMonth() + 1).toString().padStart(2, '0');
 
-    // Valida o bloqueio: 15:30 do dia anterior
+    // Valida o bloqueio de forma segura com base na hora local do navegador
+    const limitePrazo = new Date(dataLoop.getFullYear(), dataLoop.getMonth(), dataLoop.getDate() - 1, 15, 30, 0, 0);
     const agora = new Date();
-    const limitePrazo = new Date(dataLoop);
-    limitePrazo.setDate(limitePrazo.getDate() - 1);
-    limitePrazo.setHours(15, 30, 0, 0);
     const isBloqueado = agora > limitePrazo;
 
-    // FORÇA O LAYOUT EM LINHA (FLEXBOX) PARA NÃO EMPILHAR E GARANTIR 1 DIA APENAS
     container.innerHTML = `
         <div style="display: flex; justify-content: center; align-items: center; width: 100%; gap: 20px; margin: 20px 0;">
             <button type="button" onclick="mudarDiaCarrossel(-1)" style="font-size: 30px; cursor: pointer; background: transparent; border: none; color: #d4af37; padding: 10px;">◀</button>
@@ -297,11 +294,10 @@ function salvarArranchamentoUnico(dataServico) {
     if (!usuarioLogado) return;
 
     const agora = new Date();
+    const partes = dataServico.split('-');
     
-    // Valida trava das 15:30h do dia anterior na hora de salvar
-    const limitePrazo = new Date(dataServico + 'T00:00:00');
-    limitePrazo.setDate(limitePrazo.getDate() - 1);
-    limitePrazo.setHours(15, 30, 0, 0);
+    // Valida trava das 15:30h do dia anterior na hora de salvar usando a hora local
+    const limitePrazo = new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]) - 1, 15, 30, 0, 0);
 
     if (agora > limitePrazo) {
         return alert("Erro: O prazo para alterar esta data encerrou às 15:30h de ontem!");
@@ -718,100 +714,71 @@ function incluirUsuarioViaAdmin() {
             refUser.set({
                 usuario: nomeMilitar,
                 reparticao: esquadrao,
-                nivel: nivel,
-                senha: "123"
+                senha: "123", // Senha padrão inicial
+                nivel: nivel
             }).then(() => {
-                alert(`Militar ${nomeMilitar} cadastrado! Senha padrão: 123`);
+                alert(`Militar ${nomeMilitar} cadastrado com sucesso! Senha padrão: 123`);
                 document.getElementById('admin-novo-usuario').value = '';
                 renderizarListaDeUsuariosParaAdmin();
             });
         }
+    }).catch(err => {
+        alert("Erro ao cadastrar militar: " + err.message);
     });
 }
 
 function renderizarListaDeUsuariosParaAdmin() {
-    const container = document.getElementById('lista-gerenciamento-usuarios');
-    const filtro = document.getElementById('admin-filtro-esquadrao').value;
+    const container = document.getElementById('admin-lista-usuarios');
     if (!container) return;
 
     db.ref('usuarios').once('value').then(snapshot => {
-        container.innerHTML = '';
-        
-        snapshot.forEach(filho => {
-            const user = filho.val();
-            
-            if (filtro !== 'TODOS' && padronizarTexto(user.reparticao) !== padronizarTexto(filtro)) {
-                return;
-            }
-
-            const card = document.createElement('div');
-            card.className = 'admin-user-row';
-            card.innerHTML = `
-                <div class="admin-user-info">
-                    <strong style="color: #fff;">${user.usuario}</strong> 
-                    <span>(${user.reparticao})</span>
-                    <span style="color: #d4af37; margin-top: 2px;">Nível: ${user.nivel} | Senha: ${user.senha}</span>
-                </div>
-                <div style="display: flex; gap: 5px;">
-                    <button onclick="alterarNivelUsuario('${filho.key}', '${user.nivel}')" class="btn btn-primary" style="padding: 4px 8px; font-size: 8pt; width: auto; margin-top: 0;">Mudar Nível</button>
-                    <button onclick="deletarUsuario('${filho.key}')" class="btn btn-logout" style="padding: 4px 8px; font-size: 8pt; width: auto; margin-top: 0; background: #c0392b;">Excluir</button>
-                </div>
-            `;
-            container.appendChild(card);
-        });
-    });
-}
-
-function alterarNivelUsuario(chave, nivelAtual) {
-    let novoNivel = 'Militar';
-    if (nivelAtual === 'Militar') novoNivel = 'Furriel';
-    else if (nivelAtual === 'Furriel') novoNivel = 'Administrador';
-    else novoNivel = 'Militar';
-
-    db.ref('usuarios/' + chave + '/nivel').set(novoNivel).then(() => {
-        alert("Nível atualizado!");
-        renderizarListaDeUsuariosParaAdmin();
-    });
-}
-
-function deletarUsuario(chave) {
-    if (confirm("Remover permanentemente este militar?")) {
-        db.ref('usuarios/' + chave).remove().then(() => {
-            alert("Militar removido.");
-            renderizarListaDeUsuariosParaAdmin();
-        });
-    }
-}
-
-// QR CODE (GERAÇÃO PARA CELULAR)
-function gerarQRCodeConexao() {
-    let container = document.getElementById('container-qrcode');
-    let imgQR = document.getElementById('img-qrcode');
-    
-    // Se o HTML não tiver a div do QR Code, o JS cria ela dentro do painel Admin
-    if (!container) {
-        const adminAba = document.getElementById('conteudo-admin');
-        if(!adminAba) return alert("Aba de administração não encontrada.");
-        
-        container = document.createElement('div');
-        container.id = 'container-qrcode';
-        container.style.marginTop = '20px';
-        container.style.textAlign = 'center';
-        container.innerHTML = `
-            <h3 style="color: #d4af37;">QR Code de Acesso Rápido</h3>
-            <img id="img-qrcode" src="" alt="QR Code do App" style="margin-top: 10px; border: 5px solid #fff; border-radius: 8px;">
-            <p id="txt-url-qrcode" style="font-size: 12px; color: #aaa; margin-top: 10px; word-break: break-all;"></p>
+        let tabelaHTML = `
+            <table class="tabela-preview" style="width: 100%; margin-top: 15px;">
+                <thead>
+                    <tr>
+                        <th>Nome de Guerra</th>
+                        <th>Subdivisão</th>
+                        <th>Nível</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
         `;
-        adminAba.appendChild(container);
-        imgQR = document.getElementById('img-qrcode');
+
+        if (!snapshot.exists()) {
+            tabelaHTML += `<tr><td colspan="4" style="text-align: center;">Nenhum usuário cadastrado.</td></tr>`;
+        } else {
+            snapshot.forEach(filho => {
+                const user = filho.val();
+                const userKey = filho.key;
+
+                tabelaHTML += `
+                    <tr>
+                        <td style="font-weight: bold; color: #d4af37; text-align: left;">${user.usuario}</td>
+                        <td>${user.reparticao}</td>
+                        <td>${user.nivel || 'Militar'}</td>
+                        <td style="text-align: center;">
+                            <button onclick="excluirUsuario('${userKey}', '${user.usuario}')" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Excluir</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        tabelaHTML += `</tbody></table>`;
+        container.innerHTML = tabelaHTML;
+    }).catch(err => {
+        console.error("Erro ao carregar lista de usuários:", err);
+    });
+}
+
+function excluirUsuario(usuarioID, nomeMilitar) {
+    if (confirm(`Deseja realmente excluir permanentemente o cadastro de ${nomeMilitar}?`)) {
+        db.ref('usuarios/' + usuarioID).remove().then(() => {
+            alert("Militar excluído com sucesso!");
+            renderizarListaDeUsuariosParaAdmin();
+        }).catch(err => {
+            alert("Erro ao excluir usuário: " + err.message);
+        });
     }
-
-    const txtURL = document.getElementById('txt-url-qrcode');
-    const urlAtual = "https://marcosdamersimas-ctrl.github.io/ARRANCHAMENTO-2026/";
-    
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(urlAtual)}`;
-
-    imgQR.src = qrUrl;
-    if (txtURL) txtURL.innerText = urlAtual;
-    container.style.display = 'block';
 }
