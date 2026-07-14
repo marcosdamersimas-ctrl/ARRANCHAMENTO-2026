@@ -173,6 +173,14 @@ function gerarDiasCarrosselDinamico() {
     if (!container) return;
 
     container.innerHTML = "";
+    
+    // FORÇA O ALINHAMENTO HORIZONTAL VIA SCRIPT (CORRIGE O LAYOUT EMPILHADO)
+    container.style.display = "flex";
+    container.style.flexDirection = "row";
+    container.style.overflowX = "hidden"; // Mantém limpo para as setas controlarem
+    container.style.alignItems = "center";
+    container.style.justifyContent = "flex-start";
+
     const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
     const usuarioId = usuarioLogado ? padronizarTexto(usuarioLogado.usuario) : '';
 
@@ -194,9 +202,13 @@ function gerarDiasCarrosselDinamico() {
             const chaveRegistro = `${usuarioId}_${dataStr}`;
             const dadosSalvos = registros[chaveRegistro] || { cafe: false, almoco: false, jantar: false };
 
-            // RECONSTRUÍDO EXATAMENTE COM A SUA ESTRUTURA ORIGINAL DE LAYOUT COM ÍCONES
             const cardDia = document.createElement('div');
             cardDia.className = "dia-card";
+            
+            // Força cada card a manter seu tamanho original na horizontal sem esmagar
+            cardDia.style.flex = "0 0 100%"; 
+            cardDia.style.boxSizing = "border-box";
+
             cardDia.innerHTML = `
                 <div class="dia-titulo">${diaS} (${diaM})</div>
                 <div class="opcoes-refeicao">
