@@ -176,16 +176,13 @@ function gerarDiasCarrosselDinamico() {
     const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
     const usuarioId = usuarioLogado ? padronizarTexto(usuarioLogado.usuario) : '';
 
-    // 1. Buscamos primeiro os registros existentes na nuvem para não resetar os checks na tela
     db.ref('registrosArranchamento').once('value', (snapshot) => {
         const registros = snapshot.val() || {};
 
-        // 2. Gera os próximos 7 dias utilizando a data LOCAL do navegador (evita bug de fuso horário)
         for (let i = 0; i < 7; i++) {
             const dataFoco = new Date();
             dataFoco.setDate(dataFoco.getDate() + i);
             
-            // Extrai ano, mês e dia locais de forma segura
             const ano = dataFoco.getFullYear();
             const mes = String(dataFoco.getMonth() + 1).padStart(2, '0');
             const dia = String(dataFoco.getDate()).padStart(2, '0');
@@ -194,18 +191,30 @@ function gerarDiasCarrosselDinamico() {
             const diaS = diasSemana[dataFoco.getDay()];
             const diaM = dia;
 
-            // Busca se o militar já tem algo salvo para este dia específico
             const chaveRegistro = `${usuarioId}_${dataStr}`;
             const dadosSalvos = registros[chaveRegistro] || { cafe: false, almoco: false, jantar: false };
 
+            // Criamos o cartão com a classe 'dia-card' e os blocos de opções com ícones (☕, 🍽️, 🍕 ou equivalentes do seu CSS)
             const cardDia = document.createElement('div');
             cardDia.className = "dia-card";
             cardDia.innerHTML = `
                 <div class="dia-titulo">${diaS} (${diaM})</div>
                 <div class="opcoes-refeicao">
-                    <label><input type="checkbox" name="c-${dataStr}" value="Cafe" ${dadosSalvos.cafe ? 'checked' : ''}> Café</label>
-                    <label><input type="checkbox" name="a-${dataStr}" value="Almoco" ${dadosSalvos.almoco ? 'checked' : ''}> Almoço</label>
-                    <label><input type="checkbox" name="j-${dataStr}" value="Jantar" ${dadosSalvos.jantar ? 'checked' : ''}> Jantar</label>
+                    <label class="opcao-item">
+                        <input type="checkbox" name="c-${dataStr}" value="Cafe" ${dadosSalvos.cafe ? 'checked' : ''}>
+                        <span class="refeicao-icon">☕</span>
+                        <span class="refeicao-nome">Café</span>
+                    </label>
+                    <label class="opcao-item">
+                        <input type="checkbox" name="a-${dataStr}" value="Almoco" ${dadosSalvos.almoco ? 'checked' : ''}>
+                        <span class="refeicao-icon">🍽️</span>
+                        <span class="refeicao-nome">Almoço</span>
+                    </label>
+                    <label class="opcao-item">
+                        <input type="checkbox" name="j-${dataStr}" value="Jantar" ${dadosSalvos.jantar ? 'checked' : ''}>
+                        <span class="refeicao-icon">🍕</span>
+                        <span class="refeicao-nome">Jantar</span>
+                    </label>
                 </div>
             `;
             container.appendChild(cardDia);
