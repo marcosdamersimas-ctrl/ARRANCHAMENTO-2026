@@ -337,9 +337,10 @@ function atualizarVisualizacaoNominal() {
     const filtroSub = document.getElementById('relatorio-subdivisao')?.value;
     if (!container || !window.todosRegistros) return;
 
-    // Filtra pela data global e pela repartição correspondente
+    // Filtra pela data e repartição
     const filtrados = window.todosRegistros.filter(reg => {
-        return reg.dataRegistro === dataSelecionadaGlobal && reg.reparticao === filtroSub;
+        return reg.dataRegistro === dataSelecionadaGlobal && 
+               padronizarTexto(reg.reparticao) === padronizarTexto(filtroSub);
     });
 
     let tabelaHTML = `
@@ -359,6 +360,7 @@ function atualizarVisualizacaoNominal() {
         tabelaHTML += `<tr><td colspan="4" style="text-align:center;">Nenhum arranchamento para esta data.</td></tr>`;
     } else {
         filtrados.forEach(reg => {
+            // Garante leitura robusta de qualquer tipo de dado (booleano ou string)
             const cafeOk = reg.cafe === true || reg.cafe === "true";
             const almocoOk = reg.almoco === true || reg.almoco === "true";
             const jantarOk = reg.jantar === true || reg.jantar === "true";
@@ -387,39 +389,42 @@ function atualizarVisualizacaoFurriel() {
 
     if (zonaImpressao) zonaImpressao.classList.remove('hidden');
 
+    // Filtra aplicando padronização de texto na repartição para evitar erros de digitação (ex: "st/sgt" vs "ST / SGT")
     const filtrados = window.todosRegistros.filter(reg => {
-        return reg.dataRegistro === dataSelecionadaGlobal && reg.reparticao === filtroSub;
+        return reg.dataRegistro === dataSelecionadaGlobal && 
+               padronizarTexto(reg.reparticao) === padronizarTexto(filtroSub);
     });
 
     let tabelaHTML = `
-        <table class="tabela-sistema">
+        <table class="tabela-sistema" id="tabela-furriel-oficial">
             <thead>
                 <tr>
-                    <th>Militar</th>
-                    <th>Repartição</th>
-                    <th>Café</th>
-                    <th>Almoço</th>
-                    <th>Jantar</th>
+                    <th style="border: 1px solid #ccc; padding: 8px;">Militar</th>
+                    <th style="border: 1px solid #ccc; padding: 8px;">Repartição</th>
+                    <th style="border: 1px solid #ccc; padding: 8px;">Café</th>
+                    <th style="border: 1px solid #ccc; padding: 8px;">Almoço</th>
+                    <th style="border: 1px solid #ccc; padding: 8px;">Jantar</th>
                 </tr>
             </thead>
             <tbody>
     `;
 
     if (filtrados.length === 0) {
-        tabelaHTML += `<tr><td colspan="5" style="text-align:center;">Sem registros para esta data.</td></tr>`;
+        tabelaHTML += `<tr><td colspan="5" style="text-align:center; padding: 12px;">Sem registros para esta data.</td></tr>`;
     } else {
         filtrados.forEach(reg => {
+            // Garante consistência absoluta se gravou true/false ou "true"/"false"
             const cafeOk = reg.cafe === true || reg.cafe === "true";
             const almocoOk = reg.almoco === true || reg.almoco === "true";
             const jantarOk = reg.jantar === true || reg.jantar === "true";
 
             tabelaHTML += `
                 <tr>
-                    <td>${reg.usuario}</td>
-                    <td>${reg.reparticao}</td>
-                    <td>${cafeOk ? 'Sim' : 'Não'}</td>
-                    <td>${almocoOk ? 'Sim' : 'Não'}</td>
-                    <td>${jantarOk ? 'Sim' : 'Não'}</td>
+                    <td style="border: 1px solid #ccc; padding: 8px; font-weight: bold;">${reg.usuario}</td>
+                    <td style="border: 1px solid #ccc; padding: 8px;">${reg.reparticao}</td>
+                    <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${cafeOk ? 'Sim' : 'Não'}</td>
+                    <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${almocoOk ? 'Sim' : 'Não'}</td>
+                    <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${jantarOk ? 'Sim' : 'Não'}</td>
                 </tr>
             `;
         });
@@ -428,6 +433,7 @@ function atualizarVisualizacaoFurriel() {
     tabelaHTML += `</tbody></table>`;
     container.innerHTML = tabelaHTML;
 }
+
 // ==========================================
 // SEÇÃO ADMINISTRADOR (GERENCIAMENTO)
 // ==========================================
@@ -524,20 +530,106 @@ function gerarRelatorioSeparatedPDF(idSelectElement) {
     const filtroSub = document.getElementById(idSelectElement)?.value;
     if (!filtroSub) return alert("Selecione um Esquadrão para exportar!");
 
-    alert(`Gerando relatório em PDF para o ${filtroSub} na data ${dataSelecionadaGlobal}... (Função de impressão pronta para integração com a biblioteca jsPDF)`);
-    window.print();
-}
+    const tabelaOriginal = document.getElementById('tabela-furriel-oficial');
+    if (!tabelaOriginal) return alert("Nenhum dado disponível na tabela para imprimir!");
 
-function gerarQRCodeConexao() {
-    const container = document.getElementById('container-qrcode');
-    const img = document.getElementById('img-qrcode');
-    const txt = document.getElementById('txt-url-qrcode');
+    // Formata a data para o cabeçalho oficial
+    const partesData = dataSelecionadaGlobal.split('-');
+    const dataFormatada = `${partesData[2]}/${partesData[1]}/${partesData[0]}`;
 
-    const urlSistema = "https://marcosdamersimas-ctrl.github.io/ARRANCHAMENTO-2026/";
+    // Cria uma nova janela temporária no Firefox focando apenas no documento de impressão
+    const janelaImpressao = window.open('', '_blank');
     
-    if (container && img && txt) {
-        img.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(urlSistema)}`;
-        txt.innerText = urlSistema;
-        container.style.display = 'block';
-    }
+    // Injeta um HTML limpo, estilo Exército, com fundo branco e linhas pretas para assinatura
+    janelaImpressao.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Relatório de Arranchamento - ${filtroSub}</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    background-color: #ffffff;
+                    color: #000000;
+                    padding: 20px;
+                    margin: 0;
+                }
+                .cabecalho {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    border-bottom: 2px solid #000;
+                    padding-bottom: 10px;
+                }
+                .cabecalho h2 {
+                    margin: 0;
+                    font-size: 16pt;
+                    text-transform: uppercase;
+                }
+                .cabecalho h3 {
+                    margin: 5px 0 0 0;
+                    font-size: 12pt;
+                    font-weight: normal;
+                }
+                .tabela-sistema {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 20px;
+                }
+                .tabela-sistema th, .tabela-sistema td {
+                    border: 1px solid #000000 !important;
+                    padding: 10px;
+                    text-align: center;
+                    font-size: 11pt;
+                }
+                .tabela-sistema th {
+                    background-color: #f2f2f2 !important;
+                    font-weight: bold;
+                }
+                .assinaturas {
+                    margin-top: 60px;
+                    display: flex;
+                    justify-content: space-around;
+                }
+                .campo-assinatura {
+                    text-align: center;
+                    width: 250px;
+                    border-top: 1px solid #000;
+                    padding-top: 5px;
+                    font-size: 10pt;
+                }
+                @media print {
+                    body { padding: 0; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="cabecalho">
+                <h2>7º Regimento de Cavalaria Mecanizado</h2>
+                <h3>Relatório Oficial de Arranchamento - Subdivisão: ${filtroSub}</h3>
+                <p><strong>Data de Referência:</strong> ${dataFormatada}</p>
+            </div>
+            
+            ${tabelaOriginal.outerHTML}
+
+            <div class="assinaturas">
+                <div class="campo-assinatura">
+                    Sargento Furriel / Responsável
+                </div>
+                <div class="campo-assinatura">
+                    Fiscal de Dia / Oficial de Dia
+                </div>
+            </div>
+
+            <script>
+                // Executa a caixa de diálogo de impressão e fecha a janela extra ao terminar
+                window.onload = function() {
+                    window.print();
+                    setTimeout(function() { window.close(); }, 500);
+                };
+            <\/script>
+        </body>
+        </html>
+    `);
+
+    janelaImpressao.document.close();
 }
