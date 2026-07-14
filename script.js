@@ -143,6 +143,10 @@ function configurarTelaPorNivel() {
 
     document.getElementById('tela-login').classList.add('hidden');
     document.getElementById('painel-sistema').classList.remove('hidden');
+    
+    // FORÇA O CARROSSEL DE DIAS A GERAR NO MOMENTO DO LOGIN
+    gerarDiasCarrosselDinamico();
+    
     alternarAba('arranchamento');
 }
 
