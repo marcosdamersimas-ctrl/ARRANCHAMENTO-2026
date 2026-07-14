@@ -194,27 +194,15 @@ function gerarDiasCarrosselDinamico() {
             const chaveRegistro = `${usuarioId}_${dataStr}`;
             const dadosSalvos = registros[chaveRegistro] || { cafe: false, almoco: false, jantar: false };
 
-            // Criamos o cartão com a classe 'dia-card' e os blocos de opções com ícones (☕, 🍽️, 🍕 ou equivalentes do seu CSS)
+            // RECONSTRUÍDO EXATAMENTE COM A SUA ESTRUTURA ORIGINAL DE LAYOUT COM ÍCONES
             const cardDia = document.createElement('div');
             cardDia.className = "dia-card";
             cardDia.innerHTML = `
                 <div class="dia-titulo">${diaS} (${diaM})</div>
                 <div class="opcoes-refeicao">
-                    <label class="opcao-item">
-                        <input type="checkbox" name="c-${dataStr}" value="Cafe" ${dadosSalvos.cafe ? 'checked' : ''}>
-                        <span class="refeicao-icon">☕</span>
-                        <span class="refeicao-nome">Café</span>
-                    </label>
-                    <label class="opcao-item">
-                        <input type="checkbox" name="a-${dataStr}" value="Almoco" ${dadosSalvos.almoco ? 'checked' : ''}>
-                        <span class="refeicao-icon">🍽️</span>
-                        <span class="refeicao-nome">Almoço</span>
-                    </label>
-                    <label class="opcao-item">
-                        <input type="checkbox" name="j-${dataStr}" value="Jantar" ${dadosSalvos.jantar ? 'checked' : ''}>
-                        <span class="refeicao-icon">🍕</span>
-                        <span class="refeicao-nome">Jantar</span>
-                    </label>
+                    <label><input type="checkbox" name="c-${dataStr}" value="Cafe" ${dadosSalvos.cafe ? 'checked' : ''}> ☕ Café</label>
+                    <label><input type="checkbox" name="a-${dataStr}" value="Almoco" ${dadosSalvos.almoco ? 'checked' : ''}> 🍽️ Almoço</label>
+                    <label><input type="checkbox" name="j-${dataStr}" value="Jantar" ${dadosSalvos.jantar ? 'checked' : ''}> 🍕 Jantar</label>
                 </div>
             `;
             container.appendChild(cardDia);
@@ -225,9 +213,9 @@ function gerarDiasCarrosselDinamico() {
 function mudarDiaCarrossel(direcao) {
     const container = document.getElementById('container-dias-dinamicos');
     if (container) {
-        // Aumentado o valor do scroll para deslizar o card inteiro visivelmente
+        // Rola exatamente a largura padrão de um card original por clique
         container.scrollBy({
-            left: direcao * 180,
+            left: direcao * 210,
             behavior: 'smooth'
         });
     }
@@ -249,9 +237,7 @@ function salvarArranchamento(e) {
     const escolhas = {};
     const inputs = document.querySelectorAll('#container-dias-dinamicos input[type="checkbox"]');
     
-    // Captura o estado de cada uma das caixas do carrossel
     inputs.forEach(input => {
-        // Garante que a data YYYY-MM-DD seja extraída de forma limpa, independente do prefixo c-, a- ou j-
         const dataKey = input.name.substring(2); 
         const refeicao = input.value.toLowerCase(); // 'cafe', 'almoco' ou 'jantar'
 
@@ -263,7 +249,6 @@ function salvarArranchamento(e) {
         }
     });
 
-    // Envia e atualiza na nuvem
     const promises = Object.keys(escolhas).map(dataStr => {
         const idRegistro = `${padronizarTexto(usuarioLogado.usuario)}_${dataStr}`;
         return db.ref(`registrosArranchamento/${idRegistro}`).set({
@@ -279,7 +264,6 @@ function salvarArranchamento(e) {
     Promise.all(promises)
         .then(() => {
             alert("Arranchamento atualizado com sucesso!");
-            // Recarrega as tabelas de relatórios instantaneamente após salvar
             atualizarVisualizacaoNominal();
             atualizarVisualizacaoFurriel();
         })
@@ -288,6 +272,7 @@ function salvarArranchamento(e) {
             alert("Erro ao salvar arranchamento na nuvem.");
         });
 }
+
 // ==========================================
 // ABAS DE RELATÓRIO E VISUALIZAÇÃO
 // ==========================================
@@ -459,7 +444,7 @@ function alterarMinhaSenha() {
         for (let id in usuarios) {
             if (padronizarTexto(usuarios[id].usuario) === padronizarTexto(usuarioLogado.usuario)) {
                 db.ref(`usuarios/${id}/senha`).set(novaSenha).then(() => {
-                    alert("Senha alterada com sucesso!");
+                    alert("Senha altered com sucesso!");
                     usuarioLogado.senha = novaSenha;
                     document.getElementById('senha-nova').value = "";
                 });
