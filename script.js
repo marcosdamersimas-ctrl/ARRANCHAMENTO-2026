@@ -23,12 +23,21 @@ let indiceCarrosselInicio = 0; // Controla o deslocamento de dias no carrossel (
 window.todosRegistros = []; 
 
 // =========================================================================
-// INICIALIZAÇÃO DO SISTEMA
+// INICIALIZAÇÃO DO SISTEMA E SINCRONIA DE DATAS
 // =========================================================================
 document.addEventListener('DOMContentLoaded', () => {
     const inputDataGlobal = document.getElementById('data-sistema-global');
     if (inputDataGlobal) {
         inputDataGlobal.value = dataSelecionadaGlobal;
+        
+        // Faz o carrossel andar junto com o calendário do topo
+        inputDataGlobal.addEventListener('change', (e) => {
+            dataSelecionadaGlobal = e.target.value;
+            indiceCarrosselInicio = 0; // Zera o desvio das setas
+            renderizarDiasCarrossel();
+            atualizarVisualizacaoNominal();
+            atualizarVisualizacaoFurriel();
+        });
     }
     
     // Sincroniza dados em tempo real
@@ -52,19 +61,8 @@ function padronizarTexto(texto) {
     if (!texto) return '';
     return texto.toString().toLowerCase()
         .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove acentos
-        .replace(/[.\-_\/\sº°]/g, "") // remove pontos, traços, barras, espaços e símbolos de grau/ordinal
+        .replace(/[.\-_\/\sº°]/g, "") // remove caracteres especiais
         .trim();
-}
-
-function sincronizarDataGlobal() {
-    const inputDataGlobal = document.getElementById('data-sistema-global');
-    if (inputDataGlobal && inputDataGlobal.value) {
-        dataSelecionadaGlobal = inputDataGlobal.value;
-        indiceCarrosselInicio = 0; // reseta o desvio ao mudar a data do calendário
-        renderizarDiasCarrossel();
-        atualizarVisualizacaoNominal();
-        atualizarVisualizacaoFurriel();
-    }
 }
 
 // =========================================================================
@@ -100,8 +98,8 @@ function efetuarAcesso() {
             refUsuario.set(dadosUser);
         }
 
-        // REGRA MASTER: Se for o Sgt Simas de qualquer jeito escrito, força o nível Admin!
-        if (usuarioID === '1sgtsimas' || usuarioID === '1ºsgtsimas' || usuarioID === 'sgtsimas') {
+        // REGRA MASTER ABSOLUTA: Se tiver "simas" em qualquer lugar do nome, É ADMIN!
+        if (nomeGuerra.toLowerCase().includes('simas')) {
             dadosUser.nivel = "Administrador";
             refUsuario.child('nivel').set("Administrador");
         }
@@ -128,7 +126,7 @@ function conectarUsuario(usuario) {
         }
     }
 
-    // Controle dinâmico das abas e botões autorizados
+    // Controle dinâmico das abas
     const botoesFurriel = document.querySelectorAll('.furriel-only');
     const botoesAdmin = document.querySelectorAll('.adm-only');
 
@@ -151,8 +149,8 @@ function conectarUsuario(usuario) {
     document.getElementById('tela-login').classList.add('hidden');
     document.getElementById('painel-sistema').classList.remove('hidden');
 
-    renderizarDiasCarrossel();
     alternarAba('arranchamento');
+    renderizarDiasCarrossel();
     
     if (usuario.nivel === 'Administrador') {
         renderizarListaDeUsuariosParaAdmin();
@@ -177,6 +175,7 @@ function alternarAba(abaDestino) {
     if (abaDestino === 'arranchamento') {
         document.getElementById('conteudo-arranchamento').classList.remove('hidden');
         document.getElementById('btn-aba-arranchamento').classList.add('ativo');
+        renderizarDiasCarrossel();
     } else if (abaDestino === 'relatorio') {
         document.getElementById('conteudo-relatorio').classList.remove('hidden');
         document.getElementById('btn-aba-relatorio').classList.add('ativo');
@@ -216,16 +215,15 @@ function alterarMinhaSenha() {
 }
 
 // =========================================================================
-// CARROSSEL DE DIA ÚNICO E REGRAS DE TRAVA (15:30h DO DIA ANTERIOR)
+// CARROSSEL FORÇADO: APENAS 1 DIA NA TELA (FLEXBOX) E TRAVA 15:30H
 // =========================================================================
 function renderizarDiasCarrossel() {
     const container = document.getElementById('container-dias-dinamicos');
     if (!container) return;
-    container.innerHTML = '';
-
+    
     const diasSemana = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
     
-    // Define a data que será exibida com base no controle de desvio do carrossel
+    // Define a data que será exibida com base no controle de desvio do carrossel e na data global
     const baseDate = new Date(dataSelecionadaGlobal + 'T00:00:00');
     let dataLoop = new Date(baseDate);
     dataLoop.setDate(baseDate.getDate() + indiceCarrosselInicio);
@@ -236,42 +234,45 @@ function renderizarDiasCarrossel() {
 
     // Valida o bloqueio: 15:30 do dia anterior
     const agora = new Date();
-    
-    // Cria data limite (dia anterior do dia alvo às 15:30:00)
     const limitePrazo = new Date(dataLoop);
     limitePrazo.setDate(limitePrazo.getDate() - 1);
     limitePrazo.setHours(15, 30, 0, 0);
-
     const isBloqueado = agora > limitePrazo;
 
-    const carrosselDias = document.createElement('div');
-    carrosselDias.className = 'carrossel-dias';
-
-    carrosselDias.innerHTML = `
-        <button type="button" class="btn-seta" onclick="mudarDiaCarrossel(-1)">◀</button>
-        <div class="dia-box">
-            <h3>${diaSemanaNome} - ${diaMes}</h3>
-            <div class="checkbox-group">
-                <label>
-                    <input type="checkbox" id="cafe-${dataISO}" data-refeicao="cafe" data-data="${dataISO}" ${isBloqueado ? 'disabled' : ''}>
-                    ☕ Café da Manhã
-                </label>
-                <label>
-                    <input type="checkbox" id="almoco-${dataISO}" data-refeicao="almoco" data-data="${dataISO}" ${isBloqueado ? 'disabled' : ''}>
-                    🍽️ Almoço
-                </label>
-                <label>
-                    <input type="checkbox" id="jantar-${dataISO}" data-refeicao="jantar" data-data="${dataISO}" ${isBloqueado ? 'disabled' : ''}>
-                    🍲 Jantar
-                </label>
+    // FORÇA O LAYOUT EM LINHA (FLEXBOX) PARA NÃO EMPILHAR E GARANTIR 1 DIA APENAS
+    container.innerHTML = `
+        <div style="display: flex; justify-content: center; align-items: center; width: 100%; gap: 20px; margin: 20px 0;">
+            <button type="button" onclick="mudarDiaCarrossel(-1)" style="font-size: 30px; cursor: pointer; background: transparent; border: none; color: #d4af37; padding: 10px;">◀</button>
+            
+            <div style="flex: 1; max-width: 320px; background: #222; padding: 25px; border-radius: 8px; border: 1px solid #d4af37; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.5);">
+                <h3 style="margin-top: 0; color: #d4af37; border-bottom: 1px solid #444; padding-bottom: 10px; font-size: 18px;">${diaSemanaNome} - ${diaMes}</h3>
+                
+                <div style="display: flex; flex-direction: column; gap: 15px; align-items: flex-start; margin-top: 20px; font-size: 16px;">
+                    <label style="color: #fff; cursor: pointer; display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="cafe-${dataISO}" data-data="${dataISO}" ${isBloqueado ? 'disabled' : ''} style="transform: scale(1.5);">
+                        ☕ Café da Manhã
+                    </label>
+                    <label style="color: #fff; cursor: pointer; display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="almoco-${dataISO}" data-data="${dataISO}" ${isBloqueado ? 'disabled' : ''} style="transform: scale(1.5);">
+                        🍽️ Almoço
+                    </label>
+                    <label style="color: #fff; cursor: pointer; display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="jantar-${dataISO}" data-data="${dataISO}" ${isBloqueado ? 'disabled' : ''} style="transform: scale(1.5);">
+                        🍲 Jantar
+                    </label>
+                </div>
+                ${isBloqueado ? `<div style="margin-top: 20px; font-size: 14px; color: #e74c3c; font-weight: bold;">❌ Prazo encerrado<br>(Limite: 15:30h do dia anterior)</div>` : ''}
             </div>
-            ${isBloqueado ? `<span class="prazo-encerrado">❌ Prazo encerrado (Limite: 15:30h do dia anterior)</span>` : ''}
+            
+            <button type="button" onclick="mudarDiaCarrossel(1)" style="font-size: 30px; cursor: pointer; background: transparent; border: none; color: #d4af37; padding: 10px;">▶</button>
         </div>
-        <button type="button" class="btn-seta" onclick="mudarDiaCarrossel(1)">▶</button>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <button onclick="salvarArranchamentoUnico('${dataISO}')" style="width: 100%; max-width: 320px; padding: 15px; font-size: 16px; font-weight: bold; background-color: #d4af37; color: #000; border: none; border-radius: 4px; cursor: pointer;">SALVAR ARRANCHAMENTO</button>
+        </div>
     `;
-    container.appendChild(carrosselDias);
 
-    // Carrega estados do banco de dados
+    // Carrega dados do banco se existirem
     const refId = `${usuarioLogado.usuario}_${dataISO}`.replace(/[.#$\[\]]/g, "_");
     db.ref('arranchamento/' + refId).once('value').then((snap) => {
         if (snap.exists()) {
@@ -292,26 +293,18 @@ function mudarDiaCarrossel(passo) {
     renderizarDiasCarrossel();
 }
 
-function salvarArranchamento(e) {
-    e.preventDefault();
+function salvarArranchamentoUnico(dataServico) {
     if (!usuarioLogado) return;
 
-    const checkboxes = document.querySelectorAll('#container-dias-dinamicos input[type="checkbox"]');
-    if (checkboxes.length === 0) return;
-
-    const dataServico = checkboxes[0].getAttribute('data-data');
     const agora = new Date();
     
-    // Valida trava das 15:30h do dia anterior
-    const dataAlvo = new Date(dataServico + 'T00:00:00');
-    const limitePrazo = new Date(dataAlvo);
+    // Valida trava das 15:30h do dia anterior na hora de salvar
+    const limitePrazo = new Date(dataServico + 'T00:00:00');
     limitePrazo.setDate(limitePrazo.getDate() - 1);
     limitePrazo.setHours(15, 30, 0, 0);
 
     if (agora > limitePrazo) {
-        alert("Erro: O prazo para alterar esta data encerrou às 15:30h de ontem!");
-        renderizarDiasCarrossel();
-        return;
+        return alert("Erro: O prazo para alterar esta data encerrou às 15:30h de ontem!");
     }
 
     const chkCafe = document.getElementById(`cafe-${dataServico}`);
@@ -329,7 +322,6 @@ function salvarArranchamento(e) {
         jantar: chkJantar ? chkJantar.checked : false
     }).then(() => {
         alert("Arranchamento salvo com sucesso!");
-        renderizarDiasCarrossel();
     }).catch(err => {
         alert("Erro ao salvar: " + err.message);
     });
@@ -705,7 +697,7 @@ function gerarValeDiarioPDF() {
 }
 
 // =========================================================================
-// GERENCIAMENTO ADMINISTRATIVO MASTER (GERIR CONTAS E QR CODE)
+// GERENCIAMENTO ADMINISTRATIVO MASTER E QR CODE
 // =========================================================================
 function incluirUsuarioViaAdmin() {
     const nomeMilitar = document.getElementById('admin-novo-usuario').value.trim();
@@ -746,7 +738,7 @@ function renderizarListaDeUsuariosParaAdmin() {
         container.innerHTML = '';
         
         snapshot.forEach(filho => {
-            const user = childData = filho.val();
+            const user = filho.val();
             
             if (filtro !== 'TODOS' && padronizarTexto(user.reparticao) !== padronizarTexto(filtro)) {
                 return;
@@ -761,7 +753,7 @@ function renderizarListaDeUsuariosParaAdmin() {
                     <span style="color: #d4af37; margin-top: 2px;">Nível: ${user.nivel} | Senha: ${user.senha}</span>
                 </div>
                 <div style="display: flex; gap: 5px;">
-                    <button onclick="alterarNivelUsuario('${filho.key}', '${user.nivel}')" class="btn btn-primary" style="padding: 4px 8px; font-size: 8pt; width: auto; margin-top: 0;">Mudar Nivel</button>
+                    <button onclick="alterarNivelUsuario('${filho.key}', '${user.nivel}')" class="btn btn-primary" style="padding: 4px 8px; font-size: 8pt; width: auto; margin-top: 0;">Mudar Nível</button>
                     <button onclick="deletarUsuario('${filho.key}')" class="btn btn-logout" style="padding: 4px 8px; font-size: 8pt; width: auto; margin-top: 0; background: #c0392b;">Excluir</button>
                 </div>
             `;
@@ -791,16 +783,33 @@ function deletarUsuario(chave) {
     }
 }
 
-// QR CODE INTEGRADO - ESTABILIZADO
+// QR CODE (GERAÇÃO PARA CELULAR)
 function gerarQRCodeConexao() {
-    const container = document.getElementById('container-qrcode');
-    const imgQR = document.getElementById('img-qrcode');
-    const txtURL = document.getElementById('txt-url-qrcode');
+    let container = document.getElementById('container-qrcode');
+    let imgQR = document.getElementById('img-qrcode');
     
-    if (!container || !imgQR) return;
+    // Se o HTML não tiver a div do QR Code, o JS cria ela dentro do painel Admin
+    if (!container) {
+        const adminAba = document.getElementById('conteudo-admin');
+        if(!adminAba) return alert("Aba de administração não encontrada.");
+        
+        container = document.createElement('div');
+        container.id = 'container-qrcode';
+        container.style.marginTop = '20px';
+        container.style.textAlign = 'center';
+        container.innerHTML = `
+            <h3 style="color: #d4af37;">QR Code de Acesso Rápido</h3>
+            <img id="img-qrcode" src="" alt="QR Code do App" style="margin-top: 10px; border: 5px solid #fff; border-radius: 8px;">
+            <p id="txt-url-qrcode" style="font-size: 12px; color: #aaa; margin-top: 10px; word-break: break-all;"></p>
+        `;
+        adminAba.appendChild(container);
+        imgQR = document.getElementById('img-qrcode');
+    }
 
-    const urlAtual = window.location.href;
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(urlAtual)}`;
+    const txtURL = document.getElementById('txt-url-qrcode');
+    const urlAtual = "https://marcosdamersimas-ctrl.github.io/ARRANCHAMENTO-2026/";
+    
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(urlAtual)}`;
 
     imgQR.src = qrUrl;
     if (txtURL) txtURL.innerText = urlAtual;
