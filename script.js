@@ -36,7 +36,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function padronizarTexto(texto) {
-    return texto ? texto.toLowerCase().trim().replace(/\s+/g, '') : '';
+    if (!texto) return '';
+    return texto
+        .toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove acentos
+        .replace(/[^a-z0-9]/g, "")                      // Remove espaços, pontos, traços e o 'º'
+        .trim();
 }
 
 function inicializarBancoDeDados() {
@@ -291,7 +296,7 @@ function salvarArranchamento(e) {
     
     inputs.forEach(input => {
         const dataKey = input.name.substring(2); 
-        const refeicao = input.value.toLowerCase(); // 'cafe', 'almoco' ou 'jantar'
+        const refeicao = input.value.toLowerCase(); 
 
         if (!escolhas[dataKey]) {
             escolhas[dataKey] = { cafe: false, almoco: false, jantar: false };
@@ -302,9 +307,10 @@ function salvarArranchamento(e) {
     });
 
     const promises = Object.keys(escolhas).map(dataStr => {
+        // A chave do Firebase continua única por data/militar padronizado
         const idRegistro = `${padronizarTexto(usuarioLogado.usuario)}_${dataStr}`;
         return db.ref(`registrosArranchamento/${idRegistro}`).set({
-            usuario: usuarioLogado.usuario,
+            usuario: usuarioLogado.usuario, // Grava o nome de exibição original (ex: "1º Sgt Simas")
             reparticao: usuarioLogado.reparticao,
             dataRegistro: dataStr,
             cafe: escolhas[dataStr].cafe,
@@ -324,7 +330,6 @@ function salvarArranchamento(e) {
             alert("Erro ao salvar arranchamento na nuvem.");
         });
 }
-
 // ==========================================
 // ABAS DE RELATÓRIO E VISUALIZAÇÃO
 // ==========================================
@@ -333,7 +338,7 @@ function atualizarVisualizacaoNominal() {
     const filtroSub = document.getElementById('relatorio-subdivisao')?.value;
     if (!container || !window.todosRegistros) return;
 
-    // Filtra registros pela data global selecionada e esquadrão
+    // Filtra pela data global e pela repartição correspondente
     const filtrados = window.todosRegistros.filter(reg => {
         return reg.dataRegistro === dataSelecionadaGlobal && reg.reparticao === filtroSub;
     });
@@ -355,12 +360,16 @@ function atualizarVisualizacaoNominal() {
         tabelaHTML += `<tr><td colspan="4" style="text-align:center;">Nenhum arranchamento para esta data.</td></tr>`;
     } else {
         filtrados.forEach(reg => {
+            const cafeOk = reg.cafe === true || reg.cafe === "true";
+            const almocoOk = reg.almoco === true || reg.almoco === "true";
+            const jantarOk = reg.jantar === true || reg.jantar === "true";
+
             tabelaHTML += `
                 <tr>
                     <td>${reg.usuario}</td>
-                    <td>${reg.cafe ? '✅' : '❌'}</td>
-                    <td>${reg.almoco ? '✅' : '❌'}</td>
-                    <td>${reg.jantar ? '✅' : '❌'}</td>
+                    <td>${cafeOk ? '✅' : '❌'}</td>
+                    <td>${almocoOk ? '✅' : '❌'}</td>
+                    <td>${jantarOk ? '✅' : '❌'}</td>
                 </tr>
             `;
         });
@@ -398,16 +407,20 @@ function atualizarVisualizacaoFurriel() {
     `;
 
     if (filtrados.length === 0) {
-        tabelaHTML += `<tr><td colspan="5" style="text-align:center;">Sem registros.</td></tr>`;
+        tabelaHTML += `<tr><td colspan="5" style="text-align:center;">Sem registros para esta data.</td></tr>`;
     } else {
         filtrados.forEach(reg => {
+            const cafeOk = reg.cafe === true || reg.cafe === "true";
+            const almocoOk = reg.almoco === true || reg.almoco === "true";
+            const jantarOk = reg.jantar === true || reg.jantar === "true";
+
             tabelaHTML += `
                 <tr>
                     <td>${reg.usuario}</td>
                     <td>${reg.reparticao}</td>
-                    <td>${reg.cafe ? 'Sim' : 'Não'}</td>
-                    <td>${reg.almoco ? 'Sim' : 'Não'}</td>
-                    <td>${reg.jantar ? 'Sim' : 'Não'}</td>
+                    <td>${cafeOk ? 'Sim' : 'Não'}</td>
+                    <td>${almocoOk ? 'Sim' : 'Não'}</td>
+                    <td>${jantarOk ? 'Sim' : 'Não'}</td>
                 </tr>
             `;
         });
@@ -416,7 +429,6 @@ function atualizarVisualizacaoFurriel() {
     tabelaHTML += `</tbody></table>`;
     container.innerHTML = tabelaHTML;
 }
-
 // ==========================================
 // SEÇÃO ADMINISTRADOR (GERENCIAMENTO)
 // ==========================================
