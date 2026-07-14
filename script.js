@@ -174,20 +174,24 @@ function gerarDiasCarrosselDinamico() {
 
     container.innerHTML = "";
     
-    // Configura o container para ser um carrossel de exibição única (um dia por vez)
+    // Configura o container para ser um carrossel de exibição única
     container.style.display = "flex";
     container.style.flexDirection = "row";
-    container.style.overflowX = "hidden"; // Esconde a barra de rolagem feia
-    container.style.scrollBehavior = "smooth"; // Força rolagem fluida
+    container.style.overflowX = "hidden"; 
+    container.style.scrollBehavior = "smooth"; 
     container.style.alignItems = "center";
     container.style.justifyContent = "flex-start";
     container.style.width = "100%";
 
     const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
     const usuarioId = usuarioLogado ? padronizarTexto(usuarioLogado.usuario) : '';
+    const eAdmin = usuarioLogado && (usuarioLogado.nivelAcesso === "Administrador" || usuarioLogado.nivelAcesso === "Furriel");
 
     db.ref('registrosArranchamento').once('value', (snapshot) => {
         const registros = snapshot.val() || {};
+
+        // Captura o momento exato do acesso do militar
+        const agora = new Date();
 
         for (let i = 0; i < 7; i++) {
             const dataFoco = new Date();
@@ -204,10 +208,33 @@ function gerarDiasCarrosselDinamico() {
             const chaveRegistro = `${usuarioId}_${dataStr}`;
             const dadosSalvos = registros[chaveRegistro] || { cafe: false, almoco: false, jantar: false };
 
+            // ==========================================
+            // LÓGICA DE TRAVAMENTO DE PRAZO (15:30 DO DIA ANTERIOR)
+            // ==========================================
+            let diaBloqueado = false;
+
+            // Define a data limite para este card específico (dia anterior às 15:30)
+            const limiteMudar = new Date(dataFoco);
+            limiteMudar.setDate(limiteMudar.getDate() - 1); // Dia anterior
+            limiteMudar.setHours(15, 30, 0, 0);            // 15:30h
+
+            // Se o momento atual passou da data limite AND o usuário não é Administrador/Furriel
+            if (agora > limiteMudar && !eAdmin) {
+                diaBloqueado = true;
+            }
+
+            // Bloqueio extra: militar comum nunca pode mexer no dia de hoje ou dias passados
+            const hojeDataStr = agora.toISOString().slice(0, 10);
+            if (dataStr <= hojeDataStr && !eAdmin) {
+                diaBloqueado = true;
+            }
+
+            const stringDisabled = diaBloqueado ? "disabled" : "";
+            const estiloLabel = diaBloqueado ? "opacity: 0.5; cursor: not-allowed;" : "cursor: pointer;";
+
             const cardDia = document.createElement('div');
             cardDia.className = "dia-card";
             
-            // Força cada card a ocupar exatamente a largura total da janela preta (largura interna das setas)
             cardDia.style.flex = "0 0 100%"; 
             cardDia.style.width = "100%";
             cardDia.style.boxSizing = "border-box";
@@ -218,11 +245,19 @@ function gerarDiasCarrosselDinamico() {
             cardDia.style.padding = "10px";
 
             cardDia.innerHTML = `
-                <div class="dia-titulo" style="font-weight: bold; margin-bottom: 10px; font-size: 1.1rem; color: #f1c40f;">${diaS} (${diaM})</div>
+                <div class="dia-titulo" style="font-weight: bold; margin-bottom: 10px; font-size: 1.1rem; color: #f1c40f;">
+                    ${diaS} (${diaM}) ${diaBloqueado ? '<span style="font-size: 0.8rem; color: #e74c3c; display: block; font-weight: normal;">🔒 Fechado (Limite 15:30 do dia anterior)</span>' : ''}
+                </div>
                 <div class="opcoes-refeicao" style="display: flex; gap: 15px; justify-content: center; align-items: center; width: 100%;">
-                    <label style="display: inline-flex; align-items: center; gap: 5px; cursor: pointer;"><input type="checkbox" name="c-${dataStr}" value="Cafe" ${dadosSalvos.cafe ? 'checked' : ''}> ☕ Café</label>
-                    <label style="display: inline-flex; align-items: center; gap: 5px; cursor: pointer;"><input type="checkbox" name="a-${dataStr}" value="Almoco" ${dadosSalvos.almoco ? 'checked' : ''}> 🍽️ Almoço</label>
-                    <label style="display: inline-flex; align-items: center; gap: 5px; cursor: pointer;"><input type="checkbox" name="j-${dataStr}" value="Jantar" ${dadosSalvos.jantar ? 'checked' : ''}> 🍕 Jantar</label>
+                    <label style="display: inline-flex; align-items: center; gap: 5px; ${estiloLabel}">
+                        <input type="checkbox" name="c-${dataStr}" value="Cafe" ${dadosSalvos.cafe ? 'checked' : ''} ${stringDisabled}> ☕ Café
+                    </label>
+                    <label style="display: inline-flex; align-items: center; gap: 5px; ${estiloLabel}">
+                        <input type="checkbox" name="a-${dataStr}" value="Almoco" ${dadosSalvos.almoco ? 'checked' : ''} ${stringDisabled}> 🍽️ Almoço
+                    </label>
+                    <label style="display: inline-flex; align-items: center; gap: 5px; ${estiloLabel}">
+                        <input type="checkbox" name="j-${dataStr}" value="Jantar" ${dadosSalvos.jantar ? 'checked' : ''} ${stringDisabled}> 🍕 Jantar
+                    </label>
                 </div>
             `;
             container.appendChild(cardDia);
