@@ -739,24 +739,28 @@ function inicializarSeletorPermissoes() {
     const selectMilitar = document.getElementById('select-militar-permissoes');
     if (!selectMilitar) return;
 
-    // Busca a referência dos usuários cadastrados no banco
     db.ref('usuarios').once('value').then((snapshot) => {
         selectMilitar.innerHTML = '<option value="">-- Selecione o Militar --</option>';
         
         if (snapshot.exists()) {
             const usuarios = [];
             snapshot.forEach((childSnapshot) => {
+                const dados = childSnapshot.val();
+                
+                // Mapeia todas as variações possíveis para encontrar o Nome de Guerra ou Identificação
+                const nomeIdentificado = dados.nomeGuerra || dados.usuario || dados.nomeMilitar || dados.nome || childSnapshot.key || "Sem Nome";
+                
                 usuarios.push({
                     id: childSnapshot.key,
-                    nome: childSnapshot.val().nomeMilitar || childSnapshot.val().nome || "Sem Nome",
-                    nivelAtual: childSnapshot.val().nivel || childSnapshot.val().permissao || childSnapshot.val().role || "usuario"
+                    nome: nomeIdentificado,
+                    nivelAtual: dados.nivel || dados.permissao || dados.role || "usuario"
                 });
             });
 
-            // Ordena os militares em ordem alfabética para facilitar a busca
+            // Ordena em ordem alfabética
             usuarios.sort((a, b) => a.nome.localeCompare(b.nome));
 
-            // Preenche as opções do select mostrando o nível atual do militar entre parênteses
+            // Preenche o menu com os nomes corrigidos
             usuarios.forEach((usr) => {
                 const opt = document.createElement('option');
                 opt.value = usr.id;
