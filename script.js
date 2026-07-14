@@ -648,3 +648,174 @@ function gerarRelatorioSeparatedPDF(idSelectElement) {
 
     janelaImpressao.document.close();
 }
+function atualizarVisualizacaoAdmin() {
+    const container = document.getElementById('tabela-preview-admin');
+    const filtroSub = document.getElementById('admin-subdivisao')?.value;
+    const zonaImpressao = document.getElementById('zona-impressao-admin');
+    
+    if (!container || !window.todosRegistros || !filtroSub) return;
+
+    if (zonaImpressao) zonaImpressao.classList.remove('hidden');
+
+    // Filtra aplicando padronização de texto na subdivisão
+    const filtrados = window.todosRegistros.filter(reg => {
+        return reg.dataRegistro === dataSelecionadaGlobal && 
+               padronizarTexto(reg.reparticao) === padronizarTexto(filtroSub);
+    });
+
+    let tabelaHTML = `
+        <table class="tabela-sistema" id="tabela-admin-oficial">
+            <thead>
+                <tr>
+                    <th style="border: 1px solid #ccc; padding: 8px;">Militar</th>
+                    <th style="border: 1px solid #ccc; padding: 8px;">Repartição</th>
+                    <th style="border: 1px solid #ccc; padding: 8px;">Café</th>
+                    <th style="border: 1px solid #ccc; padding: 8px;">Almoço</th>
+                    <th style="border: 1px solid #ccc; padding: 8px;">Jantar</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    if (filtrados.length === 0) {
+        tabelaHTML += `<tr><td colspan="5" style="text-align:center; padding: 12px;">Sem registros para esta data.</td></tr>`;
+    } else {
+        filtrados.forEach(reg => {
+            const cafeOk = reg.cafe === true || reg.cafe === "true";
+            const almocoOk = reg.almoco === true || reg.almoco === "true";
+            const jantarOk = reg.jantar === true || reg.jantar === "true";
+
+            tabelaHTML += `
+                <tr>
+                    <td style="border: 1px solid #ccc; padding: 8px; font-weight: bold;">${reg.usuario}</td>
+                    <td style="border: 1px solid #ccc; padding: 8px;">${reg.reparticao}</td>
+                    <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${cafeOk ? 'Sim' : 'Não'}</td>
+                    <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${almocoOk ? 'Sim' : 'Não'}</td>
+                    <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${jantarOk ? 'Sim' : 'Não'}</td>
+                </tr>
+            `;
+        });
+    }
+
+    tabelaHTML += `</tbody></table>`;
+    container.innerHTML = tabelaHTML;
+
+    // Cria o botão de impressão apontando para a nova função exclusiva do Admin
+    if (zonaImpressao) {
+        zonaImpressao.innerHTML = `
+            <button onclick="gerarRelatorioAdminPDF('admin-subdivisao')" class="btn-primary" style="margin-top: 15px; width: 100%; padding: 10px; background-color: #f1c40f; color: #000; border: none; font-weight: bold; cursor: pointer; border-radius: 5px;">
+                🖨️ Exportar PDF Oficial (Admin)
+            </button>
+        `;
+    }
+}
+function gerarRelatorioAdminPDF(idSelectElement) {
+    const filtroSub = document.getElementById(idSelectElement)?.value;
+    if (!filtroSub) return alert("Selecione um Esquadrão para exportar!");
+
+    const tabelaHTML = document.getElementById('tabela-admin-oficial')?.outerHTML;
+    if (!tabelaHTML) {
+        return alert("Nenhum dado disponível na tabela para imprimir!");
+    }
+
+    const partesData = dataSelecionadaGlobal.split('-');
+    const dataFormatada = `${partesData[2]}/${partesData[1]}/${partesData[0]}`;
+
+    const janelaImpressao = window.open('', '_blank');
+    if (!janelaImpressao) {
+        return alert("Por favor, libere os pop-ups no Firefox para gerar o documento!");
+    }
+
+    janelaImpressao.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Relatório de Arranchamento - ${filtroSub}</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    background-color: #ffffff !important;
+                    color: #000000 !important;
+                    padding: 40px;
+                    margin: 0;
+                }
+                .cabecalho {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    border-bottom: 2px solid #000;
+                    padding-bottom: 15px;
+                }
+                .cabecalho h2 {
+                    margin: 0;
+                    font-size: 16pt;
+                    text-transform: uppercase;
+                }
+                .cabecalho h3 {
+                    margin: 5px 0 0 0;
+                    font-size: 12pt;
+                    font-weight: normal;
+                }
+                .tabela-sistema {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 25px;
+                }
+                .tabela-sistema th, .tabela-sistema td {
+                    border: 1px solid #000000 !important;
+                    padding: 10px;
+                    text-align: center;
+                    font-size: 11pt;
+                    color: #000000 !important;
+                    background-color: #ffffff !important;
+                }
+                .tabela-sistema th {
+                    background-color: #f2f2f2 !important;
+                    font-weight: bold;
+                }
+                .assinaturas {
+                    margin-top: 80px;
+                    display: flex;
+                    justify-content: space-around;
+                }
+                .campo-assinatura {
+                    text-align: center;
+                    width: 250px;
+                    border-top: 1px solid #000;
+                    padding-top: 5px;
+                    font-size: 10pt;
+                }
+                @media print {
+                    body { padding: 0; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="cabecalho">
+                <h2>7º Regimento de Cavalaria Mecanizado</h2>
+                <h3>Relatório Oficial de Arranchamento - Subdivisão: ${filtroSub}</h3>
+                <p><strong>Data de Referência:</strong> ${dataFormatada}</p>
+            </div>
+            
+            ${tabelaHTML}
+
+            <div class="assinaturas">
+                <div class="campo-assinatura">
+                    Sargento Furriel / Responsável
+                </div>
+                <div class="campo-assinatura">
+                    Fiscal de Dia / Oficial de Dia
+                </div>
+            </div>
+
+            <script>
+                window.onload = function() {
+                    window.print();
+                    setTimeout(function() { window.close(); }, 800);
+                };
+            <\/script>
+        </body>
+        </html>
+    `);
+
+    janelaImpressao.document.close();
+}
