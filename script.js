@@ -790,3 +790,105 @@ function excluirUsuario(usuarioID, nomeMilitar) {
         });
     }
 }
+// =========================================================================
+// SISTEMA DE QR CODE E IMPRESSÃO DE ACESSO
+// =========================================================================
+function gerarQRCodeConexao() {
+    const urlSistema = window.location.href;
+    const qrCodeUrl = `https://chart.googleapis.com/chart?chs=250x250&cht=qr&chl=${encodeURIComponent(urlSistema)}&choe=UTF-8`;
+    
+    // Resgata os elementos que já existem no seu HTML
+    const containerQR = document.getElementById('container-qrcode');
+    const imgQR = document.getElementById('img-qrcode');
+    const txtURL = document.getElementById('txt-url-qrcode');
+
+    if (containerQR && imgQR) {
+        // Alimenta a imagem e o texto com a URL
+        imgQR.src = qrCodeUrl;
+        if (txtURL) {
+            txtURL.innerText = urlSistema;
+        }
+        
+        // Torna o container visível (muda o display: none para block)
+        containerQR.style.display = 'block';
+
+        // Evita duplicar o botão de impressão se o usuário clicar mais de uma vez
+        let btnImprimir = document.getElementById('btn-imprimir-qrcode-dinamico');
+        if (!btnImprimir) {
+            btnImprimir = document.createElement('button');
+            btnImprimir.id = 'btn-imprimir-qrcode-dinamico';
+            btnImprimir.type = 'button';
+            btnImprimir.className = 'btn';
+            
+            // Estilização para combinar com o layout do seu painel
+            btnImprimir.style.marginTop = '15px';
+            btnImprimir.style.width = '100%';
+            btnImprimir.style.maxWidth = '250px';
+            btnImprimir.style.padding = '10px';
+            btnImprimir.style.fontSize = '11pt';
+            btnImprimir.style.fontWeight = 'bold';
+            btnImprimir.style.backgroundColor = '#3498db';
+            btnImprimir.style.color = '#fff';
+            btnImprimir.style.border = 'none';
+            btnImprimir.style.borderRadius = '4px';
+            btnImprimir.style.cursor = 'pointer';
+            btnImprimir.innerText = '🖨️ Imprimir QR Code';
+            
+            // Define a ação de clique do botão
+            btnImprimir.onclick = function() {
+                imprimirQRCodeOficial(qrCodeUrl);
+            };
+
+            containerQR.appendChild(btnImprimir);
+        }
+    }
+}
+
+function imprimirQRCodeOficial(urlImagemQR) {
+    const janelaImpressao = window.open('', '_blank');
+    if (!janelaImpressao) {
+        return alert("Libere os pop-ups do navegador para poder imprimir!");
+    }
+
+    janelaImpressao.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>QR Code de Acesso - 7º RC Mec</title>
+            <style>
+                body { font-family: Arial, sans-serif; text-align: center; padding: 40px; background-color: #fff; color: #000; }
+                .moldura { border: 4px double #000; padding: 30px; max-width: 500px; margin: 0 auto; border-radius: 10px; }
+                h2 { margin: 0; font-size: 18pt; text-transform: uppercase; }
+                h3 { margin: 10px 0; font-size: 14pt; color: #333; }
+                .qrcode-box { margin: 30px 0; }
+                .qrcode-box img { width: 300px; height: 300px; }
+                .instrucao { font-size: 12pt; font-weight: bold; margin-top: 20px; line-height: 1.5; }
+                .rodape { margin-top: 35px; font-size: 10pt; border-top: 1px solid #ccc; padding-top: 15px; text-transform: uppercase; }
+            </style>
+        </head>
+        <body>
+            <div class="moldura">
+                <h2>7º Regimento de Cavalaria Mecanizado</h2>
+                <h3>Regimento Brigadeiro Vasco Alves Pereira</h3>
+                <hr style="border: 0; border-top: 1px solid #000; margin: 15px 0;">
+                
+                <p class="instrucao" style="font-size: 14pt;">SISTEMA DE ARRANCHAMENTO DIGITAL</p>
+                
+                <div class="qrcode-box">
+                    <img src="${urlImagemQR}" alt="QR Code">
+                </div>
+                
+                <p class="instrucao">Aponte a câmera do seu celular para o QR Code acima para realizar o seu arranchamento.</p>
+                
+                <div class="rodape">
+                    Seção de Informática / Aprovisionamento - 7º RC Mec
+                </div>
+            </div>
+            <script>
+                window.onload = function() { window.print(); setTimeout(function() { window.close(); }, 800); };
+            <\/script>
+        </body>
+        </html>
+    `);
+    janelaImpressao.document.close();
+}
