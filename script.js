@@ -389,7 +389,7 @@ function atualizarVisualizacaoFurriel() {
 
     if (zonaImpressao) zonaImpressao.classList.remove('hidden');
 
-    // Filtra aplicando padronização de texto na repartição para evitar erros de digitação (ex: "st/sgt" vs "ST / SGT")
+    // Filtra aplicando padronização de texto na subdivisão (ex: "st/sgt" virará "stsgt")
     const filtrados = window.todosRegistros.filter(reg => {
         return reg.dataRegistro === dataSelecionadaGlobal && 
                padronizarTexto(reg.reparticao) === padronizarTexto(filtroSub);
@@ -413,7 +413,7 @@ function atualizarVisualizacaoFurriel() {
         tabelaHTML += `<tr><td colspan="5" style="text-align:center; padding: 12px;">Sem registros para esta data.</td></tr>`;
     } else {
         filtrados.forEach(reg => {
-            // Garante consistência absoluta se gravou true/false ou "true"/"false"
+            // Conversão robusta para garantir que leia booleanos salvos de qualquer aparelho (celular ou PC)
             const cafeOk = reg.cafe === true || reg.cafe === "true";
             const almocoOk = reg.almoco === true || reg.almoco === "true";
             const jantarOk = reg.jantar === true || reg.jantar === "true";
@@ -432,6 +432,15 @@ function atualizarVisualizacaoFurriel() {
 
     tabelaHTML += `</tbody></table>`;
     container.innerHTML = tabelaHTML;
+
+    // Atualiza o container de botões de exportação para chamar a nova função que abre a aba branca
+    if (zonaImpressao) {
+        zonaImpressao.innerHTML = `
+            <button onclick="gerarRelatorioSeparatedPDF('furriel-subdivisao')" class="btn-primary" style="margin-top: 15px; width: 100%; padding: 10px; background-color: #f1c40f; color: #000; border: none; font-weight: bold; cursor: pointer; border-radius: 5px;">
+                🖨️ Exportar PDF Oficial
+            </button>
+        `;
+    }
 }
 
 // ==========================================
@@ -530,17 +539,22 @@ function gerarRelatorioSeparatedPDF(idSelectElement) {
     const filtroSub = document.getElementById(idSelectElement)?.value;
     if (!filtroSub) return alert("Selecione um Esquadrão para exportar!");
 
-    const tabelaOriginal = document.getElementById('tabela-furriel-oficial');
-    if (!tabelaOriginal) return alert("Nenhum dado disponível na tabela para imprimir!");
+    // Busca a tabela que acabamos de gerar na tela
+    const tabelaHTML = document.getElementById('tabela-furriel-oficial')?.outerHTML;
+    if (!tabelaHTML) {
+        return alert("Nenhum dado disponível na tabela para imprimir!");
+    }
 
-    // Formata a data para o cabeçalho oficial
+    // Formata a data para DD/MM/AAAA
     const partesData = dataSelecionadaGlobal.split('-');
     const dataFormatada = `${partesData[2]}/${partesData[1]}/${partesData[0]}`;
 
-    // Cria uma nova janela temporária no Firefox focando apenas no documento de impressão
+    // Abre uma nova janela limpa no navegador
     const janelaImpressao = window.open('', '_blank');
-    
-    // Injeta um HTML limpo, estilo Exército, com fundo branco e linhas pretas para assinatura
+    if (!janelaImpressao) {
+        return alert("Por favor, libere os pop-ups no Firefox para gerar o documento!");
+    }
+
     janelaImpressao.document.write(`
         <!DOCTYPE html>
         <html>
@@ -549,16 +563,16 @@ function gerarRelatorioSeparatedPDF(idSelectElement) {
             <style>
                 body {
                     font-family: Arial, sans-serif;
-                    background-color: #ffffff;
-                    color: #000000;
-                    padding: 20px;
+                    background-color: #ffffff !important;
+                    color: #000000 !important;
+                    padding: 40px;
                     margin: 0;
                 }
                 .cabecalho {
                     text-align: center;
                     margin-bottom: 30px;
                     border-bottom: 2px solid #000;
-                    padding-bottom: 10px;
+                    padding-bottom: 15px;
                 }
                 .cabecalho h2 {
                     margin: 0;
@@ -573,20 +587,22 @@ function gerarRelatorioSeparatedPDF(idSelectElement) {
                 .tabela-sistema {
                     width: 100%;
                     border-collapse: collapse;
-                    margin-top: 20px;
+                    margin-top: 25px;
                 }
                 .tabela-sistema th, .tabela-sistema td {
                     border: 1px solid #000000 !important;
                     padding: 10px;
                     text-align: center;
                     font-size: 11pt;
+                    color: #000000 !important;
+                    background-color: #ffffff !important;
                 }
                 .tabela-sistema th {
                     background-color: #f2f2f2 !important;
                     font-weight: bold;
                 }
                 .assinaturas {
-                    margin-top: 60px;
+                    margin-top: 80px;
                     display: flex;
                     justify-content: space-around;
                 }
@@ -609,7 +625,7 @@ function gerarRelatorioSeparatedPDF(idSelectElement) {
                 <p><strong>Data de Referência:</strong> ${dataFormatada}</p>
             </div>
             
-            ${tabelaOriginal.outerHTML}
+            ${tabelaHTML}
 
             <div class="assinaturas">
                 <div class="campo-assinatura">
@@ -621,10 +637,9 @@ function gerarRelatorioSeparatedPDF(idSelectElement) {
             </div>
 
             <script>
-                // Executa a caixa de diálogo de impressão e fecha a janela extra ao terminar
                 window.onload = function() {
                     window.print();
-                    setTimeout(function() { window.close(); }, 500);
+                    setTimeout(function() { window.close(); }, 800);
                 };
             <\/script>
         </body>
