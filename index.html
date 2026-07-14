@@ -178,23 +178,35 @@
                 <button class="btn btn-success" style="margin-top:5px;" onclick="incluirUsuarioViaAdmin()">➕ Adicionar Usuário</button>
             </div>
 
-            <!-- SEÇÃO: LISTAR / ALTERAR / DELETAR -->
-            <div class="card">
-                <h2>Controle de Nível de Acesso</h2>
-                <div class="input-group">
-                    <label for="admin-filtro-esquadrao">Filtrar por Fração:</label>
-                    <select id="admin-filtro-esquadrao" onchange="renderizarListaDeUsuariosParaAdmin()">
-                        <option value="TODOS">Todos os usuários</option>
-                        <option value="Fanfarra">Fanfarra</option>
-                        <option value="1º Esqd">1º Esqd C Mec</option>
-                        <option value="2º Esqd">2º Esqd C Mec</option>
-                        <option value="3º Esqd">3º Esqd C Mec</option>
-                        <option value="Esqd C Ap">Esqd Comando e Apoio</option>
-                        <option value="ST/SGT">ST / SGT</option>
-                        <option value="OFICIAIS">Oficiais</option>
-                    </select>
-                </div>
-                <div class="admin-users-list" id="lista-gerenciamento-usuarios" style="margin-bottom: 20px;"></div>
+            <!-- NOVO GERENCIADOR DE PERMISSÕES INTELIGENTE -->
+<div class="card-controle" style="background: #222; padding: 20px; border-radius: 8px; border: 1px solid #d4af37; margin-bottom: 20px;">
+    <h2 style="color: #d4af37; margin-top: 0; font-size: 16px; border-bottom: 1px solid #444; padding-bottom: 10px; text-transform: uppercase;">Controle de Nível de Acesso</h2>
+    
+    <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
+        <!-- Seletor 1: Selecionar o Militar -->
+        <div style="display: flex; flex-direction: column; gap: 5px; text-align: left;">
+            <label style="color: #fff; font-size: 11pt; font-weight: bold;">1. Selecione o Militar:</label>
+            <select id="select-militar-permissoes" style="width: 100%; padding: 10px; background: #333; color: #fff; border: 1px solid #d4af37; border-radius: 4px; font-size: 11pt;">
+                <option value="">Carregando militares...</option>
+            </select>
+        </div>
+
+        <!-- Seletor 2: Definir Nível de Permissão -->
+        <div style="display: flex; flex-direction: column; gap: 5px; text-align: left;">
+            <label style="color: #fff; font-size: 11pt; font-weight: bold;">2. Definir Nível de Permissão:</label>
+            <select id="select-nivel-permissoes" style="width: 100%; padding: 10px; background: #333; color: #fff; border: 1px solid #d4af37; border-radius: 4px; font-size: 11pt;">
+                <option value="usuario">Usuário</option>
+                <option value="furriel">Furriel</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
+
+        <!-- Botão para Salvar -->
+        <button type="button" onclick="salvarNovaPermissaoMilitar()" style="width: 100%; padding: 12px; font-size: 12pt; font-weight: bold; background-color: #d4af37; color: #000; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px;">
+            💾 Salvar Permissão do Militar
+        </button>
+    </div>
+</div>
                 
                 <h2>Imprimir via Painel Master</h2>
                 <div class="input-group">

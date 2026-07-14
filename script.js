@@ -735,50 +735,69 @@ function incluirUsuarioViaAdmin() {
     });
 }
 
-function renderizarListaDeUsuariosParaAdmin() {
-    const container = document.getElementById('admin-lista-usuarios');
-    if (!container) return;
+function inicializarSeletorPermissoes() {
+    const selectMilitar = document.getElementById('select-militar-permissoes');
+    if (!selectMilitar) return;
 
-    db.ref('usuarios').once('value').then(snapshot => {
-        let tabelaHTML = `
-            <table class="tabela-preview" style="width: 100%; margin-top: 15px;">
-                <thead>
-                    <tr>
-                        <th>Nome de Guerra</th>
-                        <th>Subdivisão</th>
-                        <th>Nível</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-
-        if (!snapshot.exists()) {
-            tabelaHTML += `<tr><td colspan="4" style="text-align: center;">Nenhum usuário cadastrado.</td></tr>`;
-        } else {
-            snapshot.forEach(filho => {
-                const user = filho.val();
-                const userKey = filho.key;
-
-                tabelaHTML += `
-                    <tr>
-                        <td style="font-weight: bold; color: #d4af37; text-align: left;">${user.usuario}</td>
-                        <td>${user.reparticao}</td>
-                        <td>${user.nivel || 'Militar'}</td>
-                        <td style="text-align: center;">
-                            <button onclick="excluirUsuario('${userKey}', '${user.usuario}')" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Excluir</button>
-                        </td>
-                    </tr>
-                `;
+    // Busca a referência dos usuários cadastrados no banco
+    db.ref('usuarios').once('value').then((snapshot) => {
+        selectMilitar.innerHTML = '<option value="">-- Selecione o Militar --</option>';
+        
+        if (snapshot.exists()) {
+            const usuarios = [];
+            snapshot.forEach((childSnapshot) => {
+                usuarios.push({
+                    id: childSnapshot.key,
+                    nome: childSnapshot.val().nomeMilitar || childSnapshot.val().nome || "Sem Nome",
+                    nivelAtual: childSnapshot.val().nivel || childSnapshot.val().permissao || childSnapshot.val().role || "usuario"
+                });
             });
-        }
 
-        tabelaHTML += `</tbody></table>`;
-        container.innerHTML = tabelaHTML;
-    }).catch(err => {
-        console.error("Erro ao carregar lista de usuários:", err);
+            // Ordena os militares em ordem alfabética para facilitar a busca
+            usuarios.sort((a, b) => a.nome.localeCompare(b.nome));
+
+            // Preenche as opções do select mostrando o nível atual do militar entre parênteses
+            usuarios.forEach((usr) => {
+                const opt = document.createElement('option');
+                opt.value = usr.id;
+                opt.textContent = `${usr.nome} (${usr.nivelAtual.toUpperCase()})`;
+                selectMilitar.appendChild(opt);
+            });
+        } else {
+            selectMilitar.innerHTML = '<option value="">Nenhum militar cadastrado</option>';
+        }
+    }).catch((err) => {
+        console.error("Erro ao carregar militares no seletor:", err);
     });
 }
+
+// 2. Salva o novo nível escolhido direto no Firebase
+function salvarNovaPermissaoMilitar() {
+    const militarId = document.getElementById('select-militar-permissoes').value;
+    const novoNivel = document.getElementById('select-nivel-permissoes').value;
+
+    if (!militarId) {
+        return alert("Por favor, selecione um militar na lista antes de salvar!");
+    }
+
+    if (confirm(`Deseja realmente alterar a permissão deste militar para "${novoNivel.toUpperCase()}"?`)) {
+        // Atualiza o campo 'nivel' (ou ajuste para 'role'/'permissao' se seu banco usar outra chave)
+        db.ref('usuarios/' + militarId).update({
+            nivel: novoNivel
+        }).then(() => {
+            alert("Permissão atualizada com sucesso!");
+            // Recarrega o seletor para mostrar a lista atualizada
+            inicializarSeletorPermissoes();
+        }).catch((err) => {
+            console.error("Erro ao salvar nova permissão:", err);
+            alert("Erro ao salvar permissão: " + err.message);
+        });
+    }
+}
+
+// Executar a inicialização do seletor sempre que o painel administrativo for carregado
+// Adicione esta linha dentro da sua função existente que renderiza o painel do Admin:
+// inicializarSeletorPermissoes();
 
 function excluirUsuario(usuarioID, nomeMilitar) {
     if (confirm(`Deseja realmente excluir permanentemente o cadastro de ${nomeMilitar}?`)) {
@@ -889,7 +908,7 @@ function imprimirQRCodeOficial(urlImagemQR) {
                 <p class="instrucao">Aponte a câmera do seu celular para o QR Code acima para realizar o seu arranchamento.</p>
                 
                 <div class="rodape">
-                    Seção de Informática / Aprovisionamento - 7º RC Mec
+                 Aprovisionamento - 7º RC Mec
                 </div>
             </div>
             <script>
