@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.todosRegistros = [];
         snapshot.forEach((filho) => {
             const dados = filho.val();
-            dados.idRegistro = filho.key;
+            dados.idRegistro = childKey = filho.key;
             window.todosRegistros.push(dados);
         });
         
@@ -115,11 +115,11 @@ function conectarUsuario(usuario) {
     if (containerBadge) {
         containerBadge.innerHTML = '';
         if (usuario.nivel === 'Administrador') {
-            containerBadge.innerHTML = '<span class="badge badge-admin">Master Admin</span>';
+            containerBadge.innerHTML = '<span class="user-badge">Master Admin</span>';
         } else if (usuario.nivel === 'Furriel') {
-            containerBadge.innerHTML = '<span class="badge badge-furriel">Furriel</span>';
+            containerBadge.innerHTML = '<span class="user-badge" style="color: #3498db;">Furriel</span>';
         } else {
-            containerBadge.innerHTML = '<span class="badge badge-militar">Militar</span>';
+            containerBadge.innerHTML = '<span class="user-badge" style="color: #2ecc71;">Militar</span>';
         }
     }
 
@@ -211,7 +211,7 @@ function alterarMinhaSenha() {
 }
 
 // =========================================================================
-// CARROSSEL E SISTEMA DE ARRANCHAMENTO (BLOQUEIO 08:30H ATIVO)
+// CARROSSEL E SISTEMA DE ARRANCHAMENTO (USANDO ESTRUTURA E CLASSES DO SEU CSS)
 // =========================================================================
 function renderizarDiasCarrossel() {
     const container = document.getElementById('container-dias-dinamicos');
@@ -221,6 +221,7 @@ function renderizarDiasCarrossel() {
     const diasSemana = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
     const baseDate = new Date(dataSelecionadaGlobal + 'T00:00:00');
 
+    // Monta exatamente a estrutura que o seu style.css estiliza: .carrossel-dias > .dia-box > .checkbox-group
     for (let i = 0; i < 5; i++) {
         let dataLoop = new Date(baseDate);
         dataLoop.setDate(baseDate.getDate() + i + indiceCarrosselInicio);
@@ -229,32 +230,31 @@ function renderizarDiasCarrossel() {
         const diaSemanaNome = diasSemana[dataLoop.getDay()];
         const diaMes = dataLoop.getDate().toString().padStart(2, '0') + '/' + (dataLoop.getMonth() + 1).toString().padStart(2, '0');
 
-        const cardDia = document.createElement('div');
-        cardDia.className = 'dia-card';
-        cardDia.innerHTML = `
-            <div class="dia-titulo">${diaSemanaNome}</div>
-            <div class="dia-subtitulo">${diaMes}</div>
-            
-            <div class="refeicao-opcao">
-                <label>
-                    <input type="checkbox" id="cafe-${dataISO}" data-refeicao="cafe" data-data="${dataISO}">
-                    ☕ Café da Manhã
-                </label>
+        const carrosselDias = document.createElement('div');
+        carrosselDias.className = 'carrossel-dias';
+
+        carrosselDias.innerHTML = `
+            <button type="button" class="btn-seta" onclick="mudarDiaCarrossel(-1)">◀</button>
+            <div class="dia-box">
+                <h3>${diaSemanaNome} - ${diaMes}</h3>
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" id="cafe-${dataISO}" data-refeicao="cafe" data-data="${dataISO}">
+                        ☕ Café da Manhã
+                    </label>
+                    <label>
+                        <input type="checkbox" id="almoco-${dataISO}" data-refeicao="almoco" data-data="${dataISO}">
+                        🍽️ Almoço
+                    </label>
+                    <label>
+                        <input type="checkbox" id="jantar-${dataISO}" data-refeicao="jantar" data-data="${dataISO}">
+                        🍲 Jantar
+                    </label>
+                </div>
             </div>
-            <div class="refeicao-opcao">
-                <label>
-                    <input type="checkbox" id="almoco-${dataISO}" data-refeicao="almoco" data-data="${dataISO}">
-                    🍽️ Almoço
-                </label>
-            </div>
-            <div class="refeicao-opcao">
-                <label>
-                    <input type="checkbox" id="jantar-${dataISO}" data-refeicao="jantar" data-data="${dataISO}">
-                    🍲 Jantar
-                </label>
-            </div>
+            <button type="button" class="btn-seta" onclick="mudarDiaCarrossel(1)">▶</button>
         `;
-        container.appendChild(cardDia);
+        container.appendChild(carrosselDias);
 
         // Preencher checkboxes marcados
         const refId = `${usuarioLogado.usuario}_${dataISO}`.replace(/[.#$\[\]]/g, "_");
@@ -364,7 +364,7 @@ function atualizarVisualizacaoNominal() {
             🍲 Jantar: <span style="font-weight: bold; color: #fff;">${totalJantar}</span>
         </div>
 
-        <table class="tabela-sistema">
+        <table class="tabela-preview">
             <thead>
                 <tr>
                     <th>Militar</th>
@@ -387,7 +387,7 @@ function atualizarVisualizacaoNominal() {
 
             tabelaHTML += `
                 <tr>
-                    <td style="font-weight: bold; color: #d4af37;">${reg.usuario}</td>
+                    <td style="font-weight: bold; color: #d4af37; text-align: left;">${reg.usuario}</td>
                     <td>${reg.reparticao}</td>
                     <td style="text-align: center;">${cafeOk ? '✅' : '❌'}</td>
                     <td style="text-align: center;">${almocoOk ? '✅' : '❌'}</td>
@@ -442,14 +442,14 @@ function atualizarVisualizacaoFurriel() {
             🍲 Jantar: <span style="font-weight: bold; color: #fff;">${totalJantar} arranchados</span>
         </div>
 
-        <table class="tabela-sistema" id="tabela-furriel-oficial" style="width: 100%; border-collapse: collapse;">
+        <table class="tabela-preview" id="tabela-furriel-oficial" style="width: 100%;">
             <thead>
                 <tr>
-                    <th style="border: 1px solid #ccc; padding: 8px;">Militar</th>
-                    <th style="border: 1px solid #ccc; padding: 8px;">Repartição</th>
-                    <th style="border: 1px solid #ccc; padding: 8px;">Café</th>
-                    <th style="border: 1px solid #ccc; padding: 8px;">Almoço</th>
-                    <th style="border: 1px solid #ccc; padding: 8px;">Jantar</th>
+                    <th>Militar</th>
+                    <th>Repartição</th>
+                    <th>Café</th>
+                    <th>Almoço</th>
+                    <th>Jantar</th>
                 </tr>
             </thead>
             <tbody>
@@ -465,11 +465,11 @@ function atualizarVisualizacaoFurriel() {
 
             tabelaHTML += `
                 <tr>
-                    <td style="border: 1px solid #ccc; padding: 8px; font-weight: bold; text-align: left;">${reg.usuario}</td>
-                    <td style="border: 1px solid #ccc; padding: 8px;">${reg.reparticao}</td>
-                    <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${cafeOk ? 'Sim' : 'Não'}</td>
-                    <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${almocoOk ? 'Sim' : 'Não'}</td>
-                    <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${jantarOk ? 'Sim' : 'Não'}</td>
+                    <td style="font-weight: bold; text-align: left; color: #d4af37;">${reg.usuario}</td>
+                    <td>${reg.reparticao}</td>
+                    <td style="text-align: center;">${cafeOk ? 'Sim' : 'Não'}</td>
+                    <td style="text-align: center;">${almocoOk ? 'Sim' : 'Não'}</td>
+                    <td style="text-align: center;">${jantarOk ? 'Sim' : 'Não'}</td>
                 </tr>
             `;
         });
@@ -696,17 +696,16 @@ function renderizarListaDeUsuariosParaAdmin() {
             }
 
             const card = document.createElement('div');
-            card.className = 'admin-user-card';
-            card.style = 'background: #2a2a2a; padding: 10px; margin-bottom: 8px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; border-left: 3px solid #d4af37;';
+            card.className = 'admin-user-row';
             card.innerHTML = `
-                <div>
+                <div class="admin-user-info">
                     <strong style="color: #fff;">${user.usuario}</strong> 
-                    <span style="font-size: 9pt; color: #aaa;">(${user.reparticao})</span><br>
-                    <span style="font-size: 8pt; color: #d4af37;">Nível: ${user.nivel} | Senha: ${user.senha}</span>
+                    <span>(${user.reparticao})</span>
+                    <span style="color: #d4af37; margin-top: 2px;">Nível: ${user.nivel} | Senha: ${user.senha}</span>
                 </div>
                 <div style="display: flex; gap: 5px;">
-                    <button onclick="alterarNivelUsuario('${filho.key}', '${user.nivel}')" class="btn btn-warning" style="padding: 4px 8px; font-size: 8pt; cursor: pointer;">Mudar Nivel</button>
-                    <button onclick="deletarUsuario('${filho.key}')" class="btn btn-danger" style="padding: 4px 8px; font-size: 8pt; cursor: pointer; background: #c0392b; border: none; color: white;">Excluir</button>
+                    <button onclick="alterarNivelUsuario('${filho.key}', '${user.nivel}')" class="btn btn-primary" style="padding: 4px 8px; font-size: 8pt; width: auto; margin-top: 0;">Mudar Nivel</button>
+                    <button onclick="deletarUsuario('${filho.key}')" class="btn btn-logout" style="padding: 4px 8px; font-size: 8pt; width: auto; margin-top: 0; background: #c0392b;">Excluir</button>
                 </div>
             `;
             container.appendChild(card);
