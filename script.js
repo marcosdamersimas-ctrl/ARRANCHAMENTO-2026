@@ -1,5 +1,5 @@
 // =========================================================================
-// CONFIGURAÇÃO DO FIREBASE (BANCO DE DADOS)
+// CONFIGURAÇÃO DO FIREBASE (BANCO DE DADOS - PADRÃO V8)
 // =========================================================================
 const firebaseConfig = {
     apiKey: "AIzaSyCJ9wwSIMg_t9pYKrX99Tc3y58_Yjk_Bo",
@@ -12,51 +12,52 @@ const firebaseConfig = {
     measurementId: "G-STZQVFCJ2K"
 };
 
-// Inicializa o Firebase
-firebase.initializeApp(firebaseConfig);
+// Inicializa com segurança evitando re-inicialização caso o script recarregue
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 const db = firebase.database();
 
 // Variáveis Globais de Controle
 let usuarioLogado = null;
 let dataSelecionadaGlobal = new Date().toISOString().slice(0, 10);
 let indiceCarrosselInicio = 0;
-window.todosRegistros = []; // Armazena todos os registros sincronizados do banco
+window.todosRegistros = []; // Armazena todos os arranchamentos em tempo real
 
 // =========================================================================
 // INICIALIZAÇÃO DO SISTEMA
 // =========================================================================
 document.addEventListener('DOMContentLoaded', () => {
-    // Define a data de hoje no calendário global
     const inputDataGlobal = document.getElementById('data-sistema-global');
     if (inputDataGlobal) {
         inputDataGlobal.value = dataSelecionadaGlobal;
     }
     
-    // Ouve em tempo real as mudanças no banco para manter os relatórios atualizados automaticamente
+    // Ouve em tempo real as mudanças no banco
     db.ref('arranchamento').on('value', (snapshot) => {
         window.todosRegistros = [];
         snapshot.forEach((filho) => {
             const dados = filho.val();
-            // Mantém a chave original do registro para auditoria se necessário
             dados.idRegistro = filho.key;
             window.todosRegistros.push(dados);
         });
         
-        // Atualiza todas as tabelas ativas na tela para refletirem os dados novos imediatamente
+        // Mantém atualizadas as views na tela do usuário logado
         atualizarVisualizacaoNominal();
         atualizarVisualizacaoFurriel();
+    }, (error) => {
+        console.error("Erro ao sincronizar banco:", error);
     });
 });
 
-// Padronização robusta de texto para evitar erros de acentuação, maiúsculas e espaços (ex: "Silva", "Sgt Silva")
+// Padronização robusta de strings
 function padronizarTexto(texto) {
     if (!texto) return '';
     return texto.toString().toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove acentos
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
         .trim();
 }
 
-// Sincroniza a data global ao alterar o input superior
 function sincronizarDataGlobal() {
     const inputDataGlobal = document.getElementById('data-sistema-global');
     if (inputDataGlobal && inputDataGlobal.value) {
@@ -76,7 +77,7 @@ function efetuarAcesso() {
     const senhaDigitada = document.getElementById('login-senha').value;
 
     if (!nomeGuerra || !senhaDigitada) {
-        return alert("Por favor, preencha todos os campos para prosseguir.");
+        return alert("Preencha todos os campos para prosseguir.");
     }
 
     const usuarioID = padronizarTexto(nomeGuerra);
@@ -88,21 +89,23 @@ function efetuarAcesso() {
             if (dadosUser.senha === senhaDigitada) {
                 conectarUsuario(dadosUser);
             } else {
-                alert("Senha incorreta para este Nome de Guerra! Solicite alteração se necessário.");
+                alert("Senha incorreta para este Nome de Guerra!");
             }
         } else {
-            // Cadastro Automático no primeiro acesso
+            // Conta nova criada automaticamente no primeiro acesso
             const novoMilitar = {
                 usuario: nomeGuerra,
                 reparticao: subdivisao,
                 senha: senhaDigitada,
-                nivel: "Militar" // Usuário padrão
+                nivel: "Militar"
             };
             refUsuario.set(novoMilitar).then(() => {
-                alert(`Militar ${nomeGuerra} cadastrado com sucesso no esquadrão/fraçao ${subdivisao}!`);
+                alert(`Militar ${nomeGuerra} cadastrado no esquadrão/fração ${subdivisao}!`);
                 conectarUsuario(novoMilitar);
             });
         }
+    }).catch(err => {
+        alert("Erro na comunicação com o servidor: " + err.message);
     });
 }
 
@@ -110,19 +113,19 @@ function conectarUsuario(usuario) {
     usuarioLogado = usuario;
     document.getElementById('militar-logado').innerText = usuario.usuario;
     
-    // Gerenciamento de crachás de nível
     const containerBadge = document.getElementById('nivel-badge-container');
-    containerBadge.innerHTML = '';
-    
-    if (usuario.nivel === 'Administrador') {
-        containerBadge.innerHTML = '<span class="badge badge-admin">Master Admin</span>';
-    } else if (usuario.nivel === 'Furriel') {
-        containerBadge.innerHTML = '<span class="badge badge-furriel">Furriel</span>';
-    } else {
-        containerBadge.innerHTML = '<span class="badge badge-militar">Militar</span>';
+    if (containerBadge) {
+        containerBadge.innerHTML = '';
+        if (usuario.nivel === 'Administrador') {
+            containerBadge.innerHTML = '<span class="badge badge-admin">Master Admin</span>';
+        } else if (usuario.nivel === 'Furriel') {
+            containerBadge.innerHTML = '<span class="badge badge-furriel">Furriel</span>';
+        } else {
+            containerBadge.innerHTML = '<span class="badge badge-militar">Militar</span>';
+        }
     }
 
-    // Exibe abas de acordo com a autorização
+    // Gerenciamento dinâmico de abas de acordo com a autorização
     const botoesFurriel = document.querySelectorAll('.furriel-only');
     const botoesAdmin = document.querySelectorAll('.adm-only');
 
@@ -142,11 +145,9 @@ function conectarUsuario(usuario) {
         }
     });
 
-    // Transiciona as telas
     document.getElementById('tela-login').classList.add('hidden');
     document.getElementById('painel-sistema').classList.remove('hidden');
 
-    // Inicializa a interface principal
     renderizarDiasCarrossel();
     alternarAba('arranchamento');
     
@@ -164,21 +165,18 @@ function fazerLogout() {
 }
 
 // =========================================================================
-// CONTROLE DE ABAS DO PAINEL
+// ABA DE CONTROLE
 // =========================================================================
 function alternarAba(abaDestino) {
-    // Esconde todas as abas
     document.querySelectorAll('.aba-conteudo').forEach(el => el.classList.add('hidden'));
     document.querySelectorAll('.btn-aba').forEach(el => el.classList.remove('ativo'));
 
-    // Exibe a aba correta e ativa o respectivo botão
     if (abaDestino === 'arranchamento') {
         document.getElementById('conteudo-arranchamento').classList.remove('hidden');
         document.getElementById('btn-aba-arranchamento').classList.add('ativo');
     } else if (abaDestino === 'relatorio') {
         document.getElementById('conteudo-relatorio').classList.remove('hidden');
         document.getElementById('btn-aba-relatorio').classList.add('ativo');
-        // Define o filtro nominal padrão de acordo com o esquadrão do militar
         const selectNominal = document.getElementById('relatorio-subdivisao');
         if (selectNominal && usuarioLogado) {
             selectNominal.value = usuarioLogado.reparticao;
@@ -198,9 +196,6 @@ function alternarAba(abaDestino) {
     }
 }
 
-// =========================================================================
-// ALTERAR SENHA
-// =========================================================================
 function alterarMinhaSenha() {
     const novaSenha = document.getElementById('senha-nova').value;
     if (!novaSenha || novaSenha.trim() === '') {
@@ -213,12 +208,12 @@ function alterarMinhaSenha() {
         usuarioLogado.senha = novaSenha;
         document.getElementById('senha-nova').value = '';
     }).catch(err => {
-        alert("Erro ao salvar nova senha: " + err.message);
+        alert("Erro ao salvar: " + err.message);
     });
 }
 
 // =========================================================================
-// CARROSSEL E SOLICITAÇÃO DE ARRANCHAMENTO (INCLUI BLOQUEIO DE HORÁRIOS)
+// CARROSSEL E SISTEMA DE ARRANCHAMENTO (BLOQUEIO 08:30H ATIVO)
 // =========================================================================
 function renderizarDiasCarrossel() {
     const container = document.getElementById('container-dias-dinamicos');
@@ -228,7 +223,6 @@ function renderizarDiasCarrossel() {
     const diasSemana = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
     const baseDate = new Date(dataSelecionadaGlobal + 'T00:00:00');
 
-    // Monta 5 dias a partir da data de visualização superior selecionada
     for (let i = 0; i < 5; i++) {
         let dataLoop = new Date(baseDate);
         dataLoop.setDate(baseDate.getDate() + i + indiceCarrosselInicio);
@@ -237,7 +231,6 @@ function renderizarDiasCarrossel() {
         const diaSemanaNome = diasSemana[dataLoop.getDay()];
         const diaMes = dataLoop.getDate().toString().padStart(2, '0') + '/' + (dataLoop.getMonth() + 1).toString().padStart(2, '0');
 
-        // Cria o card correspondente ao dia
         const cardDia = document.createElement('div');
         cardDia.className = 'dia-card';
         cardDia.innerHTML = `
@@ -265,7 +258,7 @@ function renderizarDiasCarrossel() {
         `;
         container.appendChild(cardDia);
 
-        // Preenche os checkboxes já marcados no banco de dados para este militar
+        // Preencher checkboxes marcados
         const refId = `${usuarioLogado.usuario}_${dataISO}`.replace(/[.#$\[\]]/g, "_");
         db.ref('arranchamento/' + refId).once('value').then((snap) => {
             if (snap.exists()) {
@@ -291,17 +284,15 @@ function salvarArranchamento(e) {
     e.preventDefault();
     if (!usuarioLogado) return;
 
-    // BLOQUEIO DE HORÁRIOS: Limite até as 08:30h do próprio dia corrente
     const agora = new Date();
     const horaAtualMinutos = (agora.getHours() * 60) + agora.getMinutes();
     const dataHojeISO = agora.toISOString().slice(0, 10);
-    const limiteMinutos = (8 * 60) + 30; // 08:30 em minutos
+    const limiteMinutos = (8 * 60) + 30; // Limite 08:30h
 
     const checkboxes = document.querySelectorAll('#container-dias-dinamicos input[type="checkbox"]');
     let gravacoesTerminadas = 0;
-    const totalParaGravar = checkboxes.length / 3; // Agrupados por data
+    const totalParaGravar = checkboxes.length / 3;
 
-    // Organiza por data de serviço
     const dadosPorData = {};
     checkboxes.forEach(chk => {
         const dataServico = chk.getAttribute('data-data');
@@ -313,12 +304,11 @@ function salvarArranchamento(e) {
     });
 
     for (const dataServico in dadosPorData) {
-        // Se tentar arranchar/desarranchar no dia de hoje e passar das 08:30h, o sistema impede a ação
         if (dataServico === dataHojeISO && horaAtualMinutos > limiteMinutos) {
-            alert(`Atenção: O horário limite para alterações no dia de hoje expirou às 08:30h! Suas escolhas para a data de hoje (${dataServico}) foram ignoradas.`);
+            alert(`Atenção: Modificações para o dia de hoje foram encerradas às 08:30h! Suas mudanças para a data de hoje (${dataServico}) foram ignoradas.`);
             gravacoesTerminadas++;
             if (gravacoesTerminadas === totalParaGravar) {
-                alert("Arranchamento atualizado nas demais datas liberadas!");
+                alert("Arranchamento atualizado nas demais datas!");
                 renderizarDiasCarrossel();
             }
             continue;
@@ -336,7 +326,7 @@ function salvarArranchamento(e) {
         }).then(() => {
             gravacoesTerminadas++;
             if (gravacoesTerminadas === totalParaGravar) {
-                alert("Suas escolhas de arranchamento foram salvas com sucesso!");
+                alert("Seu arranchamento foi salvo!");
                 renderizarDiasCarrossel();
             }
         });
@@ -344,7 +334,7 @@ function salvarArranchamento(e) {
 }
 
 // =========================================================================
-// ABA NOMINAL (VISUALIZAÇÃO DOS MILITARES E QUANTIDADE TOTAL DE ARRANCHADOS)
+// ABA NOMINAL (RESUMO DAS SOMAS)
 // =========================================================================
 function atualizarVisualizacaoNominal() {
     const container = document.getElementById('tabela-preview-nominal');
@@ -353,13 +343,11 @@ function atualizarVisualizacaoNominal() {
 
     const filtroSub = seletorFiltro.value;
 
-    // Filtra utilizando a padronização robusta de string
     const filtrados = window.todosRegistros.filter(reg => {
         return reg.dataRegistro === dataSelecionadaGlobal && 
                padronizarTexto(reg.reparticao) === padronizarTexto(filtroSub);
     });
 
-    // SOMA CIRÚRGICA DOS MILITARES ARRANCHADOS POR REFEIÇÃO
     let totalCafe = 0;
     let totalAlmoco = 0;
     let totalJantar = 0;
@@ -416,7 +404,7 @@ function atualizarVisualizacaoNominal() {
 }
 
 // =========================================================================
-// ABA FURRIEL (ATUALIZAÇÃO DA TABELA DE PREVIEW)
+// ABA FURRIEL (ATUALIZAÇÃO DE TABELA COM CONSOLIDADOS)
 // =========================================================================
 function atualizarVisualizacaoFurriel() {
     const container = document.getElementById('tabela-preview-furriel');
@@ -438,7 +426,6 @@ function atualizarVisualizacaoFurriel() {
                padronizarTexto(reg.reparticao) === padronizarTexto(filtroSub);
     });
 
-    // Cálculos de quantitativo do Furriel
     let totalCafe = 0;
     let totalAlmoco = 0;
     let totalJantar = 0;
@@ -457,7 +444,7 @@ function atualizarVisualizacaoFurriel() {
             🍲 Jantar: <span style="font-weight: bold; color: #fff;">${totalJantar} arranchados</span>
         </div>
 
-        <table class="tabela-sistema" id="tabela-furriel-oficial">
+        <table class="tabela-sistema" id="tabela-furriel-oficial" style="width: 100%; border-collapse: collapse;">
             <thead>
                 <tr>
                     <th style="border: 1px solid #ccc; padding: 8px;">Militar</th>
@@ -480,7 +467,7 @@ function atualizarVisualizacaoFurriel() {
 
             tabelaHTML += `
                 <tr>
-                    <td style="border: 1px solid #ccc; padding: 8px; font-weight: bold;">${reg.usuario}</td>
+                    <td style="border: 1px solid #ccc; padding: 8px; font-weight: bold; text-align: left;">${reg.usuario}</td>
                     <td style="border: 1px solid #ccc; padding: 8px;">${reg.reparticao}</td>
                     <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${cafeOk ? 'Sim' : 'Não'}</td>
                     <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${almocoOk ? 'Sim' : 'Não'}</td>
@@ -495,13 +482,16 @@ function atualizarVisualizacaoFurriel() {
 }
 
 // =========================================================================
-// GERAÇÃO DO PDF EXCLUSIVO (ATENDE TANTO AO FURRIEL QUANTO AO ADMIN)
+// GERAÇÃO DE PDF SEPARADO (ESTABILIZADO SEM CACHE)
 // =========================================================================
 function gerarRelatorioSeparatedPDF(idSelectElement) {
-    const filtroSub = document.getElementById(idSelectElement)?.value;
+    const seletor = document.getElementById(idSelectElement);
+    if (!seletor) return alert("Erro de interface: seletor não encontrado.");
+    
+    const filtroSub = seletor.value;
     if (!filtroSub) return alert("Selecione um Esquadrão para exportar!");
 
-    // Filtra dinamicamente no momento da geração para evitar pegar sobras em cache
+    // Recalcula diretamente do snapshot atual na memória para evitar tabelas desatualizadas
     const filtrados = window.todosRegistros.filter(reg => {
         return reg.dataRegistro === dataSelecionadaGlobal && 
                padronizarTexto(reg.reparticao) === padronizarTexto(filtroSub);
@@ -519,7 +509,7 @@ function gerarRelatorioSeparatedPDF(idSelectElement) {
 
     let tabelaRows = '';
     if (filtrados.length === 0) {
-        tabelaRows = `<tr><td colspan="5" style="text-align:center; padding: 12px;">Nenhum militar arranchado nesta data.</td></tr>`;
+        tabelaRows = `<tr><td colspan="5" style="text-align:center; padding: 12px; border: 1px solid #000;">Nenhum militar arranchado nesta data.</td></tr>`;
     } else {
         filtrados.forEach(reg => {
             const cafeOk = reg.cafe === true || reg.cafe === "true";
@@ -529,10 +519,10 @@ function gerarRelatorioSeparatedPDF(idSelectElement) {
             tabelaRows += `
                 <tr>
                     <td style="border: 1px solid #000; padding: 8px; font-weight: bold; text-align: left;">${reg.usuario}</td>
-                    <td style="border: 1px solid #000; padding: 8px;">${reg.reparticao}</td>
-                    <td style="border: 1px solid #000; padding: 8px;">${cafeOk ? 'Sim' : 'Não'}</td>
-                    <td style="border: 1px solid #000; padding: 8px;">${almocoOk ? 'Sim' : 'Não'}</td>
-                    <td style="border: 1px solid #000; padding: 8px;">${jantarOk ? 'Sim' : 'Não'}</td>
+                    <td style="border: 1px solid #000; padding: 8px; text-align: center;">${reg.reparticao}</td>
+                    <td style="border: 1px solid #000; padding: 8px; text-align: center;">${cafeOk ? 'Sim' : 'Não'}</td>
+                    <td style="border: 1px solid #000; padding: 8px; text-align: center;">${almocoOk ? 'Sim' : 'Não'}</td>
+                    <td style="border: 1px solid #000; padding: 8px; text-align: center;">${jantarOk ? 'Sim' : 'Não'}</td>
                 </tr>
             `;
         });
@@ -543,21 +533,20 @@ function gerarRelatorioSeparatedPDF(idSelectElement) {
 
     const janelaImpressao = window.open('', '_blank');
     if (!janelaImpressao) {
-        return alert("Por favor, habilite a abertura de pop-ups em seu navegador para imprimir!");
+        return alert("Libere a exibição de pop-ups no seu navegador para abrir o relatório!");
     }
 
     janelaImpressao.document.write(`
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Arranchamento Oficial - ${filtroSub}</title>
+            <title>Arranchamento - ${filtroSub}</title>
             <style>
                 body {
                     font-family: Arial, sans-serif;
                     background-color: #ffffff;
                     color: #000000;
                     padding: 30px;
-                    margin: 0;
                 }
                 .cabecalho {
                     text-align: center;
@@ -582,10 +571,6 @@ function gerarRelatorioSeparatedPDF(idSelectElement) {
                     background-color: #f9f9f9;
                     font-size: 11pt;
                 }
-                .consolidado-box strong {
-                    font-size: 12pt;
-                    text-transform: uppercase;
-                }
                 .tabela-sistema {
                     width: 100%;
                     border-collapse: collapse;
@@ -594,13 +579,10 @@ function gerarRelatorioSeparatedPDF(idSelectElement) {
                 .tabela-sistema th, .tabela-sistema td {
                     border: 1px solid #000000;
                     padding: 8px;
-                    text-align: center;
-                    font-size: 10pt;
                 }
                 .tabela-sistema th {
                     background-color: #e6e6e6;
                     font-weight: bold;
-                    text-transform: uppercase;
                 }
                 .assinaturas {
                     margin-top: 60px;
@@ -613,18 +595,14 @@ function gerarRelatorioSeparatedPDF(idSelectElement) {
                     border-top: 1px solid #000;
                     padding-top: 5px;
                     font-size: 10pt;
-                    margin-top: 30px;
-                }
-                @media print {
-                    body { padding: 0; }
                 }
             </style>
         </head>
         <body>
             <div class="cabecalho">
                 <h2>7º Regimento de Cavalaria Mecanizado</h2>
-                <h3>Relatório Oficial de Arranchamento - Subdivisão: ${filtroSub}</h3>
-                <p style="margin: 5px 0 0 0;"><strong>Data de Referência:</strong> ${dataFormatada}</p>
+                <h3>Relatório de Arranchamento - Subdivisão: ${filtroSub}</h3>
+                <p><strong>Data de Referência:</strong> ${dataFormatada}</p>
             </div>
 
             <div class="consolidado-box">
@@ -637,7 +615,7 @@ function gerarRelatorioSeparatedPDF(idSelectElement) {
             <table class="tabela-sistema">
                 <thead>
                     <tr>
-                        <th>Militar</th>
+                        <th style="text-align: left;">Militar</th>
                         <th>Repartição</th>
                         <th>Café</th>
                         <th>Almoço</th>
@@ -688,16 +666,15 @@ function incluirUsuarioViaAdmin() {
 
     refUser.once('value').then(snapshot => {
         if (snapshot.exists()) {
-            alert("Este Nome de Guerra já possui cadastro no banco de dados!");
+            alert("Este Nome de Guerra já possui cadastro!");
         } else {
-            // Cria a conta do militar com senha padrão "123"
             refUser.set({
                 usuario: nomeMilitar,
                 reparticao: esquadrao,
                 nivel: nivel,
                 senha: "123"
             }).then(() => {
-                alert(`Militar ${nomeMilitar} cadastrado com sucesso! Senha padrão: 123`);
+                alert(`Militar ${nomeMilitar} cadastrado! Senha padrão: 123`);
                 document.getElementById('admin-novo-usuario').value = '';
                 renderizarListaDeUsuariosParaAdmin();
             });
@@ -714,9 +691,8 @@ function renderizarListaDeUsuariosParaAdmin() {
         container.innerHTML = '';
         
         snapshot.forEach(filho => {
-            const user = filho.val();
+            const user = childData = filho.val();
             
-            // Filtro por fração administrativa
             if (filtro !== 'TODOS' && padronizarTexto(user.reparticao) !== padronizarTexto(filtro)) {
                 return;
             }
@@ -747,21 +723,21 @@ function alterarNivelUsuario(chave, nivelAtual) {
     else novoNivel = 'Militar';
 
     db.ref('usuarios/' + chave + '/nivel').set(novoNivel).then(() => {
-        alert("Nível de acesso atualizado para " + novoNivel);
+        alert("Nível atualizado!");
         renderizarListaDeUsuariosParaAdmin();
     });
 }
 
 function deletarUsuario(chave) {
-    if (confirm("Deseja realmente remover permanentemente este usuário do sistema?")) {
+    if (confirm("Remover permanentemente este militar?")) {
         db.ref('usuarios/' + chave).remove().then(() => {
-            alert("Usuário excluído do banco.");
+            alert("Militar removido.");
             renderizarListaDeUsuariosParaAdmin();
         });
     }
 }
 
-// QR CODE INTEGRADO - Gerador automático de link do sistema
+// QR CODE INTEGRADO - ESTABILIZADO
 function gerarQRCodeConexao() {
     const container = document.getElementById('container-qrcode');
     const imgQR = document.getElementById('img-qrcode');
@@ -770,10 +746,9 @@ function gerarQRCodeConexao() {
     if (!container || !imgQR) return;
 
     const urlAtual = window.location.href;
-    // Utiliza API internacional livre de renderização rápida de QR Codes
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(urlAtual)}`;
 
     imgQR.src = qrUrl;
-    txtURL.innerText = urlAtual;
+    if (txtURL) txtURL.innerText = urlAtual;
     container.style.display = 'block';
 }
