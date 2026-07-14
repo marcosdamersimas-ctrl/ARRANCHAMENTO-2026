@@ -43,7 +43,6 @@ function padronizarTexto(texto) {
         .replace(/[^a-z0-9]/g, "")                      // Remove espaços, pontos, traços e o 'º'
         .trim();
 }
-
 function inicializarBancoDeDados() {
     // Escuta usuários cadastrados
     db.ref('usuarios').on('value', (snapshot) => {
