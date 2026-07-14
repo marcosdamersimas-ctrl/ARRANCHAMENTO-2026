@@ -19,8 +19,8 @@ const db = firebase.database();
 // Variáveis Globais de Controle
 let usuarioLogado = null;
 let dataSelecionadaGlobal = new Date().toISOString().slice(0, 10);
-let indiceCarrosselInicio = 0;
-window.todosRegistros = []; // Armazena todos os arranchamentos em tempo real
+let indiceCarrosselInicio = 0; // Controla o deslocamento de dias no carrossel (de 1 em 1)
+window.todosRegistros = []; 
 
 // =========================================================================
 // INICIALIZAÇÃO DO SISTEMA
@@ -31,16 +31,15 @@ document.addEventListener('DOMContentLoaded', () => {
         inputDataGlobal.value = dataSelecionadaGlobal;
     }
     
-    // Ouve em tempo real as mudanças no banco
+    // Sincroniza dados em tempo real
     db.ref('arranchamento').on('value', (snapshot) => {
         window.todosRegistros = [];
         snapshot.forEach((filho) => {
             const dados = filho.val();
-            dados.idRegistro = childKey = filho.key;
+            dados.idRegistro = filho.key;
             window.todosRegistros.push(dados);
         });
         
-        // Atualiza as tabelas se estiverem abertas
         atualizarVisualizacaoNominal();
         atualizarVisualizacaoFurriel();
     }, (error) => {
@@ -48,11 +47,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Padronização robusta de strings
+// Padronização robusta de strings para ID no Banco
 function padronizarTexto(texto) {
     if (!texto) return '';
     return texto.toString().toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove acentos
+        .replace(/[.\-_\/\sº°]/g, "") // remove pontos, traços, barras, espaços e símbolos de grau/ordinal
         .trim();
 }
 
@@ -60,6 +60,7 @@ function sincronizarDataGlobal() {
     const inputDataGlobal = document.getElementById('data-sistema-global');
     if (inputDataGlobal && inputDataGlobal.value) {
         dataSelecionadaGlobal = inputDataGlobal.value;
+        indiceCarrosselInicio = 0; // reseta o desvio ao mudar a data do calendário
         renderizarDiasCarrossel();
         atualizarVisualizacaoNominal();
         atualizarVisualizacaoFurriel();
@@ -82,26 +83,30 @@ function efetuarAcesso() {
     const refUsuario = db.ref('usuarios/' + usuarioID);
 
     refUsuario.once('value').then((snapshot) => {
+        let dadosUser;
         if (snapshot.exists()) {
-            const dadosUser = snapshot.val();
-            if (dadosUser.senha === senhaDigitada) {
-                conectarUsuario(dadosUser);
-            } else {
-                alert("Senha incorreta para este Nome de Guerra!");
+            dadosUser = snapshot.val();
+            if (dadosUser.senha !== senhaDigitada) {
+                return alert("Senha incorreta!");
             }
         } else {
-            // Conta nova criada automaticamente no primeiro acesso
-            const novoMilitar = {
+            // Conta nova automática
+            dadosUser = {
                 usuario: nomeGuerra,
                 reparticao: subdivisao,
                 senha: senhaDigitada,
                 nivel: "Militar"
             };
-            refUsuario.set(novoMilitar).then(() => {
-                alert(`Militar ${nomeGuerra} cadastrado no esquadrão/fração ${subdivisao}!`);
-                conectarUsuario(novoMilitar);
-            });
+            refUsuario.set(dadosUser);
         }
+
+        // REGRA MASTER: Se for o Sgt Simas de qualquer jeito escrito, força o nível Admin!
+        if (usuarioID === '1sgtsimas' || usuarioID === '1ºsgtsimas' || usuarioID === 'sgtsimas') {
+            dadosUser.nivel = "Administrador";
+            refUsuario.child('nivel').set("Administrador");
+        }
+
+        conectarUsuario(dadosUser);
     }).catch(err => {
         alert("Erro na comunicação com o servidor: " + err.message);
     });
@@ -115,7 +120,7 @@ function conectarUsuario(usuario) {
     if (containerBadge) {
         containerBadge.innerHTML = '';
         if (usuario.nivel === 'Administrador') {
-            containerBadge.innerHTML = '<span class="user-badge">Master Admin</span>';
+            containerBadge.innerHTML = '<span class="user-badge" style="color: #d4af37;">Master Admin</span>';
         } else if (usuario.nivel === 'Furriel') {
             containerBadge.innerHTML = '<span class="user-badge" style="color: #3498db;">Furriel</span>';
         } else {
@@ -123,7 +128,7 @@ function conectarUsuario(usuario) {
         }
     }
 
-    // Gerenciamento dinâmico de abas de acordo com a autorização
+    // Controle dinâmico das abas e botões autorizados
     const botoesFurriel = document.querySelectorAll('.furriel-only');
     const botoesAdmin = document.querySelectorAll('.adm-only');
 
@@ -163,7 +168,7 @@ function fazerLogout() {
 }
 
 // =========================================================================
-// ABA DE CONTROLE
+// CONTROLE DE ABAS
 // =========================================================================
 function alternarAba(abaDestino) {
     document.querySelectorAll('.aba-conteudo').forEach(el => el.classList.add('hidden'));
@@ -211,7 +216,7 @@ function alterarMinhaSenha() {
 }
 
 // =========================================================================
-// CARROSSEL E SISTEMA DE ARRANCHAMENTO (USANDO ESTRUTURA E CLASSES DO SEU CSS)
+// CARROSSEL DE DIA ÚNICO E REGRAS DE TRAVA (15:30h DO DIA ANTERIOR)
 // =========================================================================
 function renderizarDiasCarrossel() {
     const container = document.getElementById('container-dias-dinamicos');
@@ -219,58 +224,67 @@ function renderizarDiasCarrossel() {
     container.innerHTML = '';
 
     const diasSemana = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+    
+    // Define a data que será exibida com base no controle de desvio do carrossel
     const baseDate = new Date(dataSelecionadaGlobal + 'T00:00:00');
+    let dataLoop = new Date(baseDate);
+    dataLoop.setDate(baseDate.getDate() + indiceCarrosselInicio);
 
-    // Monta exatamente a estrutura que o seu style.css estiliza: .carrossel-dias > .dia-box > .checkbox-group
-    for (let i = 0; i < 5; i++) {
-        let dataLoop = new Date(baseDate);
-        dataLoop.setDate(baseDate.getDate() + i + indiceCarrosselInicio);
+    const dataISO = dataLoop.toISOString().slice(0, 10);
+    const diaSemanaNome = diasSemana[dataLoop.getDay()];
+    const diaMes = dataLoop.getDate().toString().padStart(2, '0') + '/' + (dataLoop.getMonth() + 1).toString().padStart(2, '0');
 
-        const dataISO = dataLoop.toISOString().slice(0, 10);
-        const diaSemanaNome = diasSemana[dataLoop.getDay()];
-        const diaMes = dataLoop.getDate().toString().padStart(2, '0') + '/' + (dataLoop.getMonth() + 1).toString().padStart(2, '0');
+    // Valida o bloqueio: 15:30 do dia anterior
+    const agora = new Date();
+    
+    // Cria data limite (dia anterior do dia alvo às 15:30:00)
+    const limitePrazo = new Date(dataLoop);
+    limitePrazo.setDate(limitePrazo.getDate() - 1);
+    limitePrazo.setHours(15, 30, 0, 0);
 
-        const carrosselDias = document.createElement('div');
-        carrosselDias.className = 'carrossel-dias';
+    const isBloqueado = agora > limitePrazo;
 
-        carrosselDias.innerHTML = `
-            <button type="button" class="btn-seta" onclick="mudarDiaCarrossel(-1)">◀</button>
-            <div class="dia-box">
-                <h3>${diaSemanaNome} - ${diaMes}</h3>
-                <div class="checkbox-group">
-                    <label>
-                        <input type="checkbox" id="cafe-${dataISO}" data-refeicao="cafe" data-data="${dataISO}">
-                        ☕ Café da Manhã
-                    </label>
-                    <label>
-                        <input type="checkbox" id="almoco-${dataISO}" data-refeicao="almoco" data-data="${dataISO}">
-                        🍽️ Almoço
-                    </label>
-                    <label>
-                        <input type="checkbox" id="jantar-${dataISO}" data-refeicao="jantar" data-data="${dataISO}">
-                        🍲 Jantar
-                    </label>
-                </div>
+    const carrosselDias = document.createElement('div');
+    carrosselDias.className = 'carrossel-dias';
+
+    carrosselDias.innerHTML = `
+        <button type="button" class="btn-seta" onclick="mudarDiaCarrossel(-1)">◀</button>
+        <div class="dia-box">
+            <h3>${diaSemanaNome} - ${diaMes}</h3>
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" id="cafe-${dataISO}" data-refeicao="cafe" data-data="${dataISO}" ${isBloqueado ? 'disabled' : ''}>
+                    ☕ Café da Manhã
+                </label>
+                <label>
+                    <input type="checkbox" id="almoco-${dataISO}" data-refeicao="almoco" data-data="${dataISO}" ${isBloqueado ? 'disabled' : ''}>
+                    🍽️ Almoço
+                </label>
+                <label>
+                    <input type="checkbox" id="jantar-${dataISO}" data-refeicao="jantar" data-data="${dataISO}" ${isBloqueado ? 'disabled' : ''}>
+                    🍲 Jantar
+                </label>
             </div>
-            <button type="button" class="btn-seta" onclick="mudarDiaCarrossel(1)">▶</button>
-        `;
-        container.appendChild(carrosselDias);
+            ${isBloqueado ? `<span class="prazo-encerrado">❌ Prazo encerrado (Limite: 15:30h do dia anterior)</span>` : ''}
+        </div>
+        <button type="button" class="btn-seta" onclick="mudarDiaCarrossel(1)">▶</button>
+    `;
+    container.appendChild(carrosselDias);
 
-        // Preencher checkboxes marcados
-        const refId = `${usuarioLogado.usuario}_${dataISO}`.replace(/[.#$\[\]]/g, "_");
-        db.ref('arranchamento/' + refId).once('value').then((snap) => {
-            if (snap.exists()) {
-                const dadosRef = snap.val();
-                const chkCafe = document.getElementById(`cafe-${dataISO}`);
-                const chkAlmoco = document.getElementById(`almoco-${dataISO}`);
-                const chkJantar = document.getElementById(`jantar-${dataISO}`);
+    // Carrega estados do banco de dados
+    const refId = `${usuarioLogado.usuario}_${dataISO}`.replace(/[.#$\[\]]/g, "_");
+    db.ref('arranchamento/' + refId).once('value').then((snap) => {
+        if (snap.exists()) {
+            const dadosRef = snap.val();
+            const chkCafe = document.getElementById(`cafe-${dataISO}`);
+            const chkAlmoco = document.getElementById(`almoco-${dataISO}`);
+            const chkJantar = document.getElementById(`jantar-${dataISO}`);
 
-                if (chkCafe) chkCafe.checked = (dadosRef.cafe === true || dadosRef.cafe === "true");
-                if (chkAlmoco) chkAlmoco.checked = (dadosRef.almoco === true || dadosRef.almoco === "true");
-                if (chkJantar) chkJantar.checked = (dadosRef.jantar === true || dadosRef.jantar === "true");
-            }
-        });
-    }
+            if (chkCafe) chkCafe.checked = (dadosRef.cafe === true || dadosRef.cafe === "true");
+            if (chkAlmoco) chkAlmoco.checked = (dadosRef.almoco === true || dadosRef.almoco === "true");
+            if (chkJantar) chkJantar.checked = (dadosRef.jantar === true || dadosRef.jantar === "true");
+        }
+    });
 }
 
 function mudarDiaCarrossel(passo) {
@@ -282,53 +296,43 @@ function salvarArranchamento(e) {
     e.preventDefault();
     if (!usuarioLogado) return;
 
-    const agora = new Date();
-    const horaAtualMinutos = (agora.getHours() * 60) + agora.getMinutes();
-    const dataHojeISO = agora.toISOString().slice(0, 10);
-    const limiteMinutos = (8 * 60) + 30; // Limite 08:30h
-
     const checkboxes = document.querySelectorAll('#container-dias-dinamicos input[type="checkbox"]');
-    let gravacoesTerminadas = 0;
-    const totalParaGravar = checkboxes.length / 3;
+    if (checkboxes.length === 0) return;
 
-    const dadosPorData = {};
-    checkboxes.forEach(chk => {
-        const dataServico = chk.getAttribute('data-data');
-        const refeicao = chk.getAttribute('data-refeicao');
-        if (!dadosPorData[dataServico]) {
-            dadosPorData[dataServico] = {};
-        }
-        dadosPorData[dataServico][refeicao] = chk.checked;
-    });
+    const dataServico = checkboxes[0].getAttribute('data-data');
+    const agora = new Date();
+    
+    // Valida trava das 15:30h do dia anterior
+    const dataAlvo = new Date(dataServico + 'T00:00:00');
+    const limitePrazo = new Date(dataAlvo);
+    limitePrazo.setDate(limitePrazo.getDate() - 1);
+    limitePrazo.setHours(15, 30, 0, 0);
 
-    for (const dataServico in dadosPorData) {
-        if (dataServico === dataHojeISO && horaAtualMinutos > limiteMinutos) {
-            alert(`Atenção: Modificações para o dia de hoje foram encerradas às 08:30h! Suas mudanças para a data de hoje (${dataServico}) foram ignoradas.`);
-            gravacoesTerminadas++;
-            if (gravacoesTerminadas === totalParaGravar) {
-                alert("Arranchamento atualizado nas demais datas!");
-                renderizarDiasCarrossel();
-            }
-            continue;
-        }
-
-        const refId = `${usuarioLogado.usuario}_${dataServico}`.replace(/[.#$\[\]]/g, "_");
-        
-        db.ref('arranchamento/' + refId).set({
-            usuario: usuarioLogado.usuario,
-            reparticao: usuarioLogado.reparticao,
-            dataRegistro: dataServico,
-            cafe: dadosPorData[dataServico]['cafe'],
-            almoco: dadosPorData[dataServico]['almoco'],
-            jantar: dadosPorData[dataServico]['jantar']
-        }).then(() => {
-            gravacoesTerminadas++;
-            if (gravacoesTerminadas === totalParaGravar) {
-                alert("Seu arranchamento foi salvo!");
-                renderizarDiasCarrossel();
-            }
-        });
+    if (agora > limitePrazo) {
+        alert("Erro: O prazo para alterar esta data encerrou às 15:30h de ontem!");
+        renderizarDiasCarrossel();
+        return;
     }
+
+    const chkCafe = document.getElementById(`cafe-${dataServico}`);
+    const chkAlmoco = document.getElementById(`almoco-${dataServico}`);
+    const chkJantar = document.getElementById(`jantar-${dataServico}`);
+
+    const refId = `${usuarioLogado.usuario}_${dataServico}`.replace(/[.#$\[\]]/g, "_");
+    
+    db.ref('arranchamento/' + refId).set({
+        usuario: usuarioLogado.usuario,
+        reparticao: usuarioLogado.reparticao,
+        dataRegistro: dataServico,
+        cafe: chkCafe ? chkCafe.checked : false,
+        almoco: chkAlmoco ? chkAlmoco.checked : false,
+        jantar: chkJantar ? chkJantar.checked : false
+    }).then(() => {
+        alert("Arranchamento salvo com sucesso!");
+        renderizarDiasCarrossel();
+    }).catch(err => {
+        alert("Erro ao salvar: " + err.message);
+    });
 }
 
 // =========================================================================
@@ -480,7 +484,7 @@ function atualizarVisualizacaoFurriel() {
 }
 
 // =========================================================================
-// GERAÇÃO DE PDF SEPARADO (ESTABILIZADO SEM CACHE)
+// GERAÇÃO DE RELATÓRIO DE ARRANCHAMENTO (PDF NOMINAL DA SUBDIVISÃO)
 // =========================================================================
 function gerarRelatorioSeparatedPDF(idSelectElement) {
     const seletor = document.getElementById(idSelectElement);
@@ -489,7 +493,6 @@ function gerarRelatorioSeparatedPDF(idSelectElement) {
     const filtroSub = seletor.value;
     if (!filtroSub) return alert("Selecione um Esquadrão para exportar!");
 
-    // Recalcula diretamente do snapshot atual na memória para evitar tabelas desatualizadas
     const filtrados = window.todosRegistros.filter(reg => {
         return reg.dataRegistro === dataSelecionadaGlobal && 
                padronizarTexto(reg.reparticao) === padronizarTexto(filtroSub);
@@ -531,7 +534,7 @@ function gerarRelatorioSeparatedPDF(idSelectElement) {
 
     const janelaImpressao = window.open('', '_blank');
     if (!janelaImpressao) {
-        return alert("Libere a exibição de pop-ups no seu navegador para abrir o relatório!");
+        return alert("Libere a exibição de pop-ups no seu navegador!");
     }
 
     janelaImpressao.document.write(`
@@ -540,60 +543,16 @@ function gerarRelatorioSeparatedPDF(idSelectElement) {
         <head>
             <title>Arranchamento - ${filtroSub}</title>
             <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    background-color: #ffffff;
-                    color: #000000;
-                    padding: 30px;
-                }
-                .cabecalho {
-                    text-align: center;
-                    margin-bottom: 25px;
-                    border-bottom: 2px solid #000;
-                    padding-bottom: 12px;
-                }
-                .cabecalho h2 {
-                    margin: 0;
-                    font-size: 15pt;
-                    text-transform: uppercase;
-                }
-                .cabecalho h3 {
-                    margin: 5px 0 0 0;
-                    font-size: 12pt;
-                    font-weight: normal;
-                }
-                .consolidado-box {
-                    border: 1px solid #000;
-                    padding: 10px;
-                    margin-bottom: 20px;
-                    background-color: #f9f9f9;
-                    font-size: 11pt;
-                }
-                .tabela-sistema {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin-top: 15px;
-                }
-                .tabela-sistema th, .tabela-sistema td {
-                    border: 1px solid #000000;
-                    padding: 8px;
-                }
-                .tabela-sistema th {
-                    background-color: #e6e6e6;
-                    font-weight: bold;
-                }
-                .assinaturas {
-                    margin-top: 60px;
-                    display: flex;
-                    justify-content: space-between;
-                }
-                .campo-assinatura {
-                    text-align: center;
-                    width: 45%;
-                    border-top: 1px solid #000;
-                    padding-top: 5px;
-                    font-size: 10pt;
-                }
+                body { font-family: Arial, sans-serif; padding: 30px; background-color: #fff; color: #000; }
+                .cabecalho { text-align: center; margin-bottom: 25px; border-bottom: 2px solid #000; padding-bottom: 12px; }
+                .cabecalho h2 { margin: 0; font-size: 15pt; text-transform: uppercase; }
+                .cabecalho h3 { margin: 5px 0 0 0; font-size: 12pt; font-weight: normal; }
+                .consolidado-box { border: 1px solid #000; padding: 10px; margin-bottom: 20px; background-color: #f9f9f9; font-size: 11pt; }
+                .tabela-sistema { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                .tabela-sistema th, .tabela-sistema td { border: 1px solid #000000; padding: 8px; }
+                .tabela-sistema th { background-color: #e6e6e6; font-weight: bold; }
+                .assinaturas { margin-top: 60px; display: flex; justify-content: space-between; }
+                .campo-assinatura { text-align: center; width: 45%; border-top: 1px solid #000; padding-top: 5px; font-size: 10pt; }
             </style>
         </head>
         <body>
@@ -626,24 +585,122 @@ function gerarRelatorioSeparatedPDF(idSelectElement) {
             </table>
 
             <div class="assinaturas">
-                <div class="campo-assinatura">
-                    Sargento Furriel / Responsável
-                </div>
-                <div class="campo-assinatura">
-                    Fiscal de Dia / Oficial de Dia
-                </div>
+                <div class="campo-assinatura">Sargento Furriel / Responsável</div>
+                <div class="campo-assinatura">Fiscal de Dia / Oficial de Dia</div>
             </div>
 
             <script>
-                window.onload = function() {
-                    window.print();
-                    setTimeout(function() { window.close(); }, 800);
-                };
+                window.onload = function() { window.print(); setTimeout(function() { window.close(); }, 800); };
             <\/script>
         </body>
         </html>
     `);
+    janelaImpressao.document.close();
+}
 
+// =========================================================================
+// GERAÇÃO DE VALE DIÁRIO CONSOLIDADO (TODOS OS ESQUADRÕES REUNIDOS)
+// =========================================================================
+function gerarValeDiarioPDF() {
+    const subdivisoes = ["1º Esq", "2º Esq", "3º Esq", "Esq C Ap", "Banda de Música", "Sec Cmd Reg", "NPOR"];
+    const partesData = dataSelecionadaGlobal.split('-');
+    const dataFormatada = `${partesData[2]}/${partesData[1]}/${partesData[0]}`;
+
+    let totalGeralCafe = 0;
+    let totalGeralAlmoco = 0;
+    let totalGeralJantar = 0;
+    let linhasTabela = '';
+
+    subdivisoes.forEach(sub => {
+        const filtrados = window.todosRegistros.filter(reg => {
+            return reg.dataRegistro === dataSelecionadaGlobal && 
+                   padronizarTexto(reg.reparticao) === padronizarTexto(sub);
+        });
+
+        let cafe = 0;
+        let almoco = 0;
+        let jantar = 0;
+
+        filtrados.forEach(reg => {
+            if (reg.cafe === true || reg.cafe === "true") cafe++;
+            if (reg.almoco === true || reg.almoco === "true") almoco++;
+            if (reg.jantar === true || reg.jantar === "true") jantar++;
+        });
+
+        totalGeralCafe += cafe;
+        totalGeralAlmoco += almoco;
+        totalGeralJantar += jantar;
+
+        linhasTabela += `
+            <tr>
+                <td style="border: 1px solid #000; padding: 10px; font-weight: bold;">${sub}</td>
+                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${cafe}</td>
+                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${almoco}</td>
+                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${jantar}</td>
+            </tr>
+        `;
+    });
+
+    const janelaImpressao = window.open('', '_blank');
+    if (!janelaImpressao) return alert("Habilite pop-ups para abrir o Vale Diário!");
+
+    janelaImpressao.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Vale Diário de Arranchamento - 7º RC Mec</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 40px; background-color: #fff; color: #000; }
+                .cabecalho { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 12px; }
+                .cabecalho h2 { margin: 0; font-size: 16pt; text-transform: uppercase; }
+                .cabecalho h3 { margin: 5px 0 0 0; font-size: 13pt; }
+                .tabela-vale { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                .tabela-vale th, .tabela-vale td { border: 1px solid #000; padding: 10px; }
+                .tabela-vale th { background-color: #f2f2f2; font-weight: bold; }
+                .total-row { background-color: #e6e6e6; font-weight: bold; }
+                .assinaturas { margin-top: 80px; display: flex; justify-content: space-between; }
+                .campo-assinatura { text-align: center; width: 45%; border-top: 1px solid #000; padding-top: 5px; font-size: 11pt; }
+            </style>
+        </head>
+        <body>
+            <div class="cabecalho">
+                <h2>Ministério da Defesa</h2>
+                <h3>Exército Brasileiro - 7º Regimento de Cavalaria Mecanizado</h3>
+                <p style="font-size: 12pt; margin: 10px 0 0 0;"><strong>VALE DIÁRIO DE ARRANCHAMENTO</strong></p>
+                <p><strong>Data do Serviço:</strong> ${dataFormatada}</p>
+            </div>
+
+            <table class="tabela-vale">
+                <thead>
+                    <tr>
+                        <th style="text-align: left;">Subdivisão (Fração/Esquadrão)</th>
+                        <th>☕ Café da Manhã</th>
+                        <th>🍽️ Almoço</th>
+                        <th>🍲 Jantar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${linhasTabela}
+                    <tr class="total-row">
+                        <td>TOTAL GERAL</td>
+                        <td style="text-align: center;">${totalGeralCafe}</td>
+                        <td style="text-align: center;">${totalGeralAlmoco}</td>
+                        <td style="text-align: center;">${totalGeralJantar}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="assinaturas">
+                <div class="campo-assinatura">Sargento Aprovisionador / Fiscal do Rancho</div>
+                <div class="campo-assinatura">Oficial de Dia / Fiscal de Dia</div>
+            </div>
+
+            <script>
+                window.onload = function() { window.print(); setTimeout(function() { window.close(); }, 800); };
+            <\/script>
+        </body>
+        </html>
+    `);
     janelaImpressao.document.close();
 }
 
@@ -689,7 +746,7 @@ function renderizarListaDeUsuariosParaAdmin() {
         container.innerHTML = '';
         
         snapshot.forEach(filho => {
-            const user = filho.val();
+            const user = childData = filho.val();
             
             if (filtro !== 'TODOS' && padronizarTexto(user.reparticao) !== padronizarTexto(filtro)) {
                 return;
