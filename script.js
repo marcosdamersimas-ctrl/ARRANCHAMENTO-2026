@@ -174,33 +174,53 @@ function gerarDiasCarrosselDinamico() {
 
     container.innerHTML = "";
     const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-    
-    // Gera os próximos 7 dias a partir de hoje
-    for (let i = 0; i < 7; i++) {
-        const dataFoco = new Date();
-        dataFoco.setDate(dataFoco.getDate() + i);
-        const dataStr = dataFoco.toISOString().slice(0, 10);
-        const diaS = diasSemana[dataFoco.getDay()];
-        const diaM = dataFoco.getDate().toString().padStart(2, '0');
+    const usuarioId = usuarioLogado ? padronizarTexto(usuarioLogado.usuario) : '';
 
-        const cardDia = document.createElement('div');
-        cardDia.className = "dia-card";
-        cardDia.innerHTML = `
-            <div class="dia-titulo">${diaS} (${diaM})</div>
-            <div class="opcoes-refeicao">
-                <label><input type="checkbox" name="c-${dataStr}" value="Cafe"> Café</label>
-                <label><input type="checkbox" name="a-${dataStr}" value="Almoco"> Almoço</label>
-                <label><input type="checkbox" name="j-${dataStr}" value="Jantar"> Jantar</label>
-            </div>
-        `;
-        container.appendChild(cardDia);
-    }
+    // 1. Buscamos primeiro os registros existentes na nuvem para não resetar os checks na tela
+    db.ref('registrosArranchamento').once('value', (snapshot) => {
+        const registros = snapshot.val() || {};
+
+        // 2. Gera os próximos 7 dias utilizando a data LOCAL do navegador (evita bug de fuso horário)
+        for (let i = 0; i < 7; i++) {
+            const dataFoco = new Date();
+            dataFoco.setDate(dataFoco.getDate() + i);
+            
+            // Extrai ano, mês e dia locais de forma segura
+            const ano = dataFoco.getFullYear();
+            const mes = String(dataFoco.getMonth() + 1).padStart(2, '0');
+            const dia = String(dataFoco.getDate()).padStart(2, '0');
+            const dataStr = `${ano}-${mes}-${dia}`;
+            
+            const diaS = diasSemana[dataFoco.getDay()];
+            const diaM = dia;
+
+            // Busca se o militar já tem algo salvo para este dia específico
+            const chaveRegistro = `${usuarioId}_${dataStr}`;
+            const dadosSalvos = registros[chaveRegistro] || { cafe: false, almoco: false, jantar: false };
+
+            const cardDia = document.createElement('div');
+            cardDia.className = "dia-card";
+            cardDia.innerHTML = `
+                <div class="dia-titulo">${diaS} (${diaM})</div>
+                <div class="opcoes-refeicao">
+                    <label><input type="checkbox" name="c-${dataStr}" value="Cafe" ${dadosSalvos.cafe ? 'checked' : ''}> Café</label>
+                    <label><input type="checkbox" name="a-${dataStr}" value="Almoco" ${dadosSalvos.almoco ? 'checked' : ''}> Almoço</label>
+                    <label><input type="checkbox" name="j-${dataStr}" value="Jantar" ${dadosSalvos.jantar ? 'checked' : ''}> Jantar</label>
+                </div>
+            `;
+            container.appendChild(cardDia);
+        }
+    });
 }
 
 function mudarDiaCarrossel(direcao) {
     const container = document.getElementById('container-dias-dinamicos');
     if (container) {
-        container.scrollLeft += direcao * 120;
+        // Aumentado o valor do scroll para deslizar o card inteiro visivelmente
+        container.scrollBy({
+            left: direcao * 180,
+            behavior: 'smooth'
+        });
     }
 }
 
@@ -220,19 +240,21 @@ function salvarArranchamento(e) {
     const escolhas = {};
     const inputs = document.querySelectorAll('#container-dias-dinamicos input[type="checkbox"]');
     
+    // Captura o estado de cada uma das caixas do carrossel
     inputs.forEach(input => {
-        const dataKey = input.name.split('-').slice(1).join('-'); // Pega a data YYYY-MM-DD
-        const refeicao = input.value;
+        // Garante que a data YYYY-MM-DD seja extraída de forma limpa, independente do prefixo c-, a- ou j-
+        const dataKey = input.name.substring(2); 
+        const refeicao = input.value.toLowerCase(); // 'cafe', 'almoco' ou 'jantar'
 
         if (!escolhas[dataKey]) {
             escolhas[dataKey] = { cafe: false, almoco: false, jantar: false };
         }
         if (input.checked) {
-            escolhas[dataKey][refeicao.toLowerCase()] = true;
+            escolhas[dataKey][refeicao] = true;
         }
     });
 
-    // Salva individualmente cada dia marcado no banco
+    // Envia e atualiza na nuvem
     const promises = Object.keys(escolhas).map(dataStr => {
         const idRegistro = `${padronizarTexto(usuarioLogado.usuario)}_${dataStr}`;
         return db.ref(`registrosArranchamento/${idRegistro}`).set({
@@ -246,10 +268,17 @@ function salvarArranchamento(e) {
     });
 
     Promise.all(promises)
-        .then(() => alert("Escolhas de arranchamento atualizadas com sucesso online!"))
-        .catch(() => alert("Erro ao salvar arranchamento na nuvem."));
+        .then(() => {
+            alert("Arranchamento atualizado com sucesso!");
+            // Recarrega as tabelas de relatórios instantaneamente após salvar
+            atualizarVisualizacaoNominal();
+            atualizarVisualizacaoFurriel();
+        })
+        .catch((error) => {
+            console.error(error);
+            alert("Erro ao salvar arranchamento na nuvem.");
+        });
 }
-
 // ==========================================
 // ABAS DE RELATÓRIO E VISUALIZAÇÃO
 // ==========================================
