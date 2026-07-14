@@ -264,10 +264,9 @@ function renderizarDiasCarrossel() {
             <button type="button" onclick="mudarDiaCarrossel(1)" style="font-size: 30px; cursor: pointer; background: transparent; border: none; color: #d4af37; padding: 10px;">▶</button>
         </div>
         
-        <div style="text-align: center; margin-top: 20px;">
-            <button onclick="salvarArranchamentoUnico('${dataISO}')" style="width: 100%; max-width: 320px; padding: 15px; font-size: 16px; font-weight: bold; background-color: #d4af37; color: #000; border: none; border-radius: 4px; cursor: pointer;">SALVAR ARRANCHAMENTO</button>
-        </div>
-    `;
+<div style="text-align: center; margin-top: 20px;">
+    <button type="button" onclick="salvarArranchamentoUnico('${dataISO}', event)" style="width: 100%; max-width: 320px; padding: 15px; font-size: 16px; font-weight: bold; background-color: #d4af37; color: #000; border: none; border-radius: 4px; cursor: pointer;">SALVAR ARRANCHAMENTO</button>
+</div>    `;
 
     // Carrega dados do banco se existirem
     const refId = `${usuarioLogado.usuario}_${dataISO}`.replace(/[.#$\[\]]/g, "_");
@@ -290,8 +289,16 @@ function mudarDiaCarrossel(passo) {
     renderizarDiasCarrossel();
 }
 
-function salvarArranchamentoUnico(dataServico) {
-    if (!usuarioLogado) return;
+function salvarArranchamentoUnico(dataServico, event) {
+    // Evita que qualquer formulário ou link recarregue a página
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
+    if (!usuarioLogado) {
+        return alert("Erro de sessão: Faça login novamente.");
+    }
 
     const agora = new Date();
     const partes = dataServico.split('-');
@@ -307,7 +314,9 @@ function salvarArranchamentoUnico(dataServico) {
     const chkAlmoco = document.getElementById(`almoco-${dataServico}`);
     const chkJantar = document.getElementById(`jantar-${dataServico}`);
 
-    const refId = `${usuarioLogado.usuario}_${dataServico}`.replace(/[.#$\[\]]/g, "_");
+    // Garante que o ID usado no Firebase não possua caracteres especiais proibidos
+    const usuarioIDLimpo = padronizarTexto(usuarioLogado.usuario);
+    const refId = `${usuarioIDLimpo}_${dataServico}`;
     
     db.ref('arranchamento/' + refId).set({
         usuario: usuarioLogado.usuario,
