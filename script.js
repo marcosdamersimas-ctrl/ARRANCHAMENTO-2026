@@ -174,12 +174,14 @@ function gerarDiasCarrosselDinamico() {
 
     container.innerHTML = "";
     
-    // FORÇA O ALINHAMENTO HORIZONTAL VIA SCRIPT (CORRIGE O LAYOUT EMPILHADO)
+    // Configura o container para ser um carrossel de exibição única (um dia por vez)
     container.style.display = "flex";
     container.style.flexDirection = "row";
-    container.style.overflowX = "hidden"; // Mantém limpo para as setas controlarem
+    container.style.overflowX = "hidden"; // Esconde a barra de rolagem feia
+    container.style.scrollBehavior = "smooth"; // Força rolagem fluida
     container.style.alignItems = "center";
     container.style.justifyContent = "flex-start";
+    container.style.width = "100%";
 
     const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
     const usuarioId = usuarioLogado ? padronizarTexto(usuarioLogado.usuario) : '';
@@ -205,16 +207,22 @@ function gerarDiasCarrosselDinamico() {
             const cardDia = document.createElement('div');
             cardDia.className = "dia-card";
             
-            // Força cada card a manter seu tamanho original na horizontal sem esmagar
+            // Força cada card a ocupar exatamente a largura total da janela preta (largura interna das setas)
             cardDia.style.flex = "0 0 100%"; 
+            cardDia.style.width = "100%";
             cardDia.style.boxSizing = "border-box";
+            cardDia.style.display = "flex";
+            cardDia.style.flexDirection = "column";
+            cardDia.style.alignItems = "center";
+            cardDia.style.justifyContent = "center";
+            cardDia.style.padding = "10px";
 
             cardDia.innerHTML = `
-                <div class="dia-titulo">${diaS} (${diaM})</div>
-                <div class="opcoes-refeicao">
-                    <label><input type="checkbox" name="c-${dataStr}" value="Cafe" ${dadosSalvos.cafe ? 'checked' : ''}> ☕ Café</label>
-                    <label><input type="checkbox" name="a-${dataStr}" value="Almoco" ${dadosSalvos.almoco ? 'checked' : ''}> 🍽️ Almoço</label>
-                    <label><input type="checkbox" name="j-${dataStr}" value="Jantar" ${dadosSalvos.jantar ? 'checked' : ''}> 🍕 Jantar</label>
+                <div class="dia-titulo" style="font-weight: bold; margin-bottom: 10px; font-size: 1.1rem; color: #f1c40f;">${diaS} (${diaM})</div>
+                <div class="opcoes-refeicao" style="display: flex; gap: 15px; justify-content: center; align-items: center; width: 100%;">
+                    <label style="display: inline-flex; align-items: center; gap: 5px; cursor: pointer;"><input type="checkbox" name="c-${dataStr}" value="Cafe" ${dadosSalvos.cafe ? 'checked' : ''}> ☕ Café</label>
+                    <label style="display: inline-flex; align-items: center; gap: 5px; cursor: pointer;"><input type="checkbox" name="a-${dataStr}" value="Almoco" ${dadosSalvos.almoco ? 'checked' : ''}> 🍽️ Almoço</label>
+                    <label style="display: inline-flex; align-items: center; gap: 5px; cursor: pointer;"><input type="checkbox" name="j-${dataStr}" value="Jantar" ${dadosSalvos.jantar ? 'checked' : ''}> 🍕 Jantar</label>
                 </div>
             `;
             container.appendChild(cardDia);
@@ -225,9 +233,10 @@ function gerarDiasCarrosselDinamico() {
 function mudarDiaCarrossel(direcao) {
     const container = document.getElementById('container-dias-dinamicos');
     if (container) {
-        // Rola exatamente a largura padrão de um card original por clique
+        // Rola exatamente a largura de um card (100% da largura visível do contêiner)
+        const larguraCard = container.clientWidth;
         container.scrollBy({
-            left: direcao * 210,
+            left: direcao * larguraCard,
             behavior: 'smooth'
         });
     }
