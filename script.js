@@ -237,9 +237,8 @@ function renderizarDiasCarrossel() {
     const agora = new Date();
     const isBloqueado = agora > limitePrazo;
 
-    container.innerHTML = `
+ container.innerHTML = `
         <div style="display: flex; justify-content: center; align-items: center; width: 100%; gap: 20px; margin: 20px 0;">
-            <button type="button" onclick="mudarDiaCarrossel(-1)" style="font-size: 30px; cursor: pointer; background: transparent; border: none; color: #d4af37; padding: 10px;">◀</button>
             
             <div style="flex: 1; max-width: 320px; background: #222; padding: 25px; border-radius: 8px; border: 1px solid #d4af37; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.5);">
                 <h3 style="margin-top: 0; color: #d4af37; border-bottom: 1px solid #444; padding-bottom: 10px; font-size: 18px;">${diaSemanaNome} - ${diaMes}</h3>
@@ -261,12 +260,12 @@ function renderizarDiasCarrossel() {
                 ${isBloqueado ? `<div style="margin-top: 20px; font-size: 14px; color: #e74c3c; font-weight: bold;">❌ Prazo encerrado<br>(Limite: 15:30h do dia anterior)</div>` : ''}
             </div>
             
-            <button type="button" onclick="mudarDiaCarrossel(1)" style="font-size: 30px; cursor: pointer; background: transparent; border: none; color: #d4af37; padding: 10px;">▶</button>
         </div>
         
-<div style="text-align: center; margin-top: 20px;">
-    <button type="button" onclick="salvarArranchamentoUnico('${dataISO}', event)" style="width: 100%; max-width: 320px; padding: 15px; font-size: 16px; font-weight: bold; background-color: #d4af37; color: #000; border: none; border-radius: 4px; cursor: pointer;">SALVAR ARRANCHAMENTO</button>
-</div>    `;
+        <div style="text-align: center; margin-top: 20px;">
+            <button type="button" onclick="salvarArranchamentoUnico('${dataISO}', event)" style="width: 100%; max-width: 320px; padding: 15px; font-size: 16px; font-weight: bold; background-color: #d4af37; color: #000; border: none; border-radius: 4px; cursor: pointer;">SALVAR ARRANCHAMENTO</button>
+        </div>
+    `;
 
     // Carrega dados do banco se existirem
     const refId = `${usuarioLogado.usuario}_${dataISO}`.replace(/[.#$\[\]]/g, "_");
