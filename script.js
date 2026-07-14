@@ -919,3 +919,11 @@ function imprimirQRCodeOficial(urlImagemQR) {
     `);
     janelaImpressao.document.close();
 }
+// Função necessária para evitar o erro de comunicação e a descentralização do layout
+function renderizarListaDeUsuariosParaAdmin() {
+    // Como agora usamos o novo seletor de permissões inteligente,
+    // apenas inicializamos ele aqui para preencher a lista de militares automaticamente.
+    if (typeof inicializarSeletorPermissoes === "function") {
+        inicializarSeletorPermissoes();
+    }
+}
