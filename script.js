@@ -279,15 +279,15 @@ function executarAlteracaoDeSenha() {
 }
 
 // =========================================================================
-// CARROSSEL FORÇADO: APENAS 1 DIA NA TELA (FLEXBOX) E TRAVA 15:30H
+// CARROSSEL PREMIUM: DESIGN IDÊNTICO AO MOCKUP COM INTERAÇÃO DE CARDS
 // =========================================================================
 function renderizarDiasCarrossel() {
     const container = document.getElementById('container-dias-dinamicos');
     if (!container) return;
     
-    const diasSemana = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+    const diasSemana = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
     
-    // Configuração segura do fuso horário local
+    // Configuração fuso horário local
     const baseDate = new Date(dataSelecionadaGlobal + 'T00:00:00');
     let dataLoop = new Date(baseDate);
     dataLoop.setDate(baseDate.getDate() + indiceCarrosselInicio);
@@ -296,55 +296,157 @@ function renderizarDiasCarrossel() {
     const diaSemanaNome = diasSemana[dataLoop.getDay()];
     const diaMes = dataLoop.getDate().toString().padStart(2, '0') + '/' + (dataLoop.getMonth() + 1).toString().padStart(2, '0');
 
-    // Valida o bloqueio de forma segura com base na hora local do navegador
+    // Valida trava segura das 15:30h do dia anterior
     const limitePrazo = new Date(dataLoop.getFullYear(), dataLoop.getMonth(), dataLoop.getDate() - 1, 15, 30, 0, 0);
     const agora = new Date();
     const isBloqueado = agora > limitePrazo;
 
- container.innerHTML = `
-        <div style="display: flex; justify-content: center; align-items: center; width: 100%; gap: 20px; margin: 20px 0;">
-            
-            <div style="flex: 1; max-width: 320px; background: #222; padding: 25px; border-radius: 8px; border: 1px solid #d4af37; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.5);">
-                <h3 style="margin-top: 0; color: #d4af37; border-bottom: 1px solid #444; padding-bottom: 10px; font-size: 18px;">${diaSemanaNome} - ${diaMes}</h3>
-                
-                <div style="display: flex; flex-direction: column; gap: 15px; align-items: flex-start; margin-top: 20px; font-size: 16px;">
-                    <label style="color: #fff; cursor: pointer; display: flex; align-items: center; gap: 10px;">
-                        <input type="checkbox" id="cafe-${dataISO}" data-data="${dataISO}" ${isBloqueado ? 'disabled' : ''} style="transform: scale(1.5);">
-                        ☕ Café da Manhã
-                    </label>
-                    <label style="color: #fff; cursor: pointer; display: flex; align-items: center; gap: 10px;">
-                        <input type="checkbox" id="almoco-${dataISO}" data-data="${dataISO}" ${isBloqueado ? 'disabled' : ''} style="transform: scale(1.5);">
-                        🍽️ Almoço
-                    </label>
-                    <label style="color: #fff; cursor: pointer; display: flex; align-items: center; gap: 10px;">
-                        <input type="checkbox" id="jantar-${dataISO}" data-data="${dataISO}" ${isBloqueado ? 'disabled' : ''} style="transform: scale(1.5);">
-                        🍲 Jantar
-                    </label>
-                </div>
-                ${isBloqueado ? `<div style="margin-top: 20px; font-size: 14px; color: #e74c3c; font-weight: bold;">❌ Prazo encerrado<br>(Limite: 15:30h do dia anterior)</div>` : ''}
-            </div>
-            
-        </div>
-        
-        <div style="text-align: center; margin-top: 20px;">
-            <button type="button" onclick="salvarArranchamentoUnico('${dataISO}', event)" style="width: 100%; max-width: 320px; padding: 15px; font-size: 16px; font-weight: bold; background-color: #d4af37; color: #000; border: none; border-radius: 4px; cursor: pointer;">SALVAR ARRANCHAMENTO</button>
-        </div>
-    `;
+    // Inicializa ou limpa o estado temporário local para esta data
+    if (!window.estadosTemporarios) {
+        window.estadosTemporarios = { cafe: false, almoco: false, jantar: false };
+    }
 
-    // Carrega dados do banco se existirem
+    // Busca dados existentes no banco para renderizar o estado correto do Card
     const refId = `${usuarioLogado.usuario}_${dataISO}`.replace(/[.#$\[\]]/g, "_");
     db.ref('arranchamento/' + refId).once('value').then((snap) => {
         if (snap.exists()) {
             const dadosRef = snap.val();
-            const chkCafe = document.getElementById(`cafe-${dataISO}`);
-            const chkAlmoco = document.getElementById(`almoco-${dataISO}`);
-            const chkJantar = document.getElementById(`jantar-${dataISO}`);
-
-            if (chkCafe) chkCafe.checked = (dadosRef.cafe === true || dadosRef.cafe === "true");
-            if (chkAlmoco) chkAlmoco.checked = (dadosRef.almoco === true || dadosRef.almoco === "true");
-            if (chkJantar) chkJantar.checked = (dadosRef.jantar === true || dadosRef.jantar === "true");
+            window.estadosTemporarios.cafe = (dadosRef.cafe === true || dadosRef.cafe === "true");
+            window.estadosTemporarios.almoco = (dadosRef.almoco === true || dadosRef.almoco === "true");
+            window.estadosTemporarios.jantar = (dadosRef.jantar === true || dadosRef.jantar === "true");
+        } else {
+            window.estadosTemporarios.cafe = false;
+            window.estadosTemporarios.almoco = false;
+            window.estadosTemporarios.jantar = false;
         }
+
+        montarEstruturaHTML(container, diaSemanaNome, diaMes, dataISO, isBloqueado);
+    }).catch(() => {
+        montarEstruturaHTML(container, diaSemanaNome, diaMes, dataISO, isBloqueado);
     });
+}
+
+// Auxiliar para gerar o HTML do carrossel no padrão premium e cinza neutro/verde militar
+function montarEstruturaHTML(container, diaSemana, diaMes, dataISO, isBloqueado) {
+    container.innerHTML = `
+        <div style="width: 100%; max-width: 480px; margin: 0 auto; padding: 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+            
+            <!-- Título do Dia Selecionado -->
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h3 style="margin: 0; color: #1a1a1a; font-size: 20px; font-weight: 700;">${diaSemana}</h3>
+                <span style="color: #666; font-size: 14px; font-weight: 500;">${diaMes}</span>
+            </div>
+
+            <!-- Container de Cards (Sem checkboxes feios, apenas cliques interativos) -->
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px;">
+                
+                <!-- CARD 1: CAFÉ DA MANHÃ -->
+                <div onclick="${isBloqueado ? '' : `alternarEstadoCard('cafe', '${dataISO}')`}" 
+                     id="card-cafe"
+                     style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: #ffffff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); cursor: ${isBloqueado ? 'default' : 'pointer'}; transition: all 0.2s ease; opacity: ${isBloqueado ? '0.75' : '1'};">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span style="font-size: 24px;">☕</span>
+                        <div>
+                            <strong style="display: block; color: #1a1a1a; font-size: 16px;">Café da Manhã</strong>
+                            <span id="badge-cafe" style="font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 20px;">Carregando...</span>
+                        </div>
+                    </div>
+                    <div id="indicador-cafe" style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center;"></div>
+                </div>
+
+                <!-- CARD 2: ALMOÇO -->
+                <div onclick="${isBloqueado ? '' : `alternarEstadoCard('almoco', '${dataISO}')`}" 
+                     id="card-almoco"
+                     style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: #ffffff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); cursor: ${isBloqueado ? 'default' : 'pointer'}; transition: all 0.2s ease; opacity: ${isBloqueado ? '0.75' : '1'};">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span style="font-size: 24px;">🍽️</span>
+                        <div>
+                            <strong style="display: block; color: #1a1a1a; font-size: 16px;">Almoço</strong>
+                            <span id="badge-almoco" style="font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 20px;">Carregando...</span>
+                        </div>
+                    </div>
+                    <div id="indicador-almoco" style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center;"></div>
+                </div>
+
+                <!-- CARD 3: JANTAR -->
+                <div onclick="${isBloqueado ? '' : `alternarEstadoCard('jantar', '${dataISO}')`}" 
+                     id="card-jantar"
+                     style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: #ffffff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); cursor: ${isBloqueado ? 'default' : 'pointer'}; transition: all 0.2s ease; opacity: ${isBloqueado ? '0.75' : '1'};">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span style="font-size: 24px;">🍲</span>
+                        <div>
+                            <strong style="display: block; color: #1a1a1a; font-size: 16px;">Jantar</strong>
+                            <span id="badge-jantar" style="font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 20px;">Carregando...</span>
+                        </div>
+                    </div>
+                    <div id="indicador-jantar" style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center;"></div>
+                </div>
+
+            </div>
+
+            <!-- Alerta de Bloqueio se houver -->
+            ${isBloqueado ? `
+                <div style="margin-bottom: 20px; padding: 12px; background: #FDE8E8; border-radius: 8px; text-align: center; color: #9B1C1C; font-size: 13px; font-weight: 600;">
+                    🔒 Prazo encerrado (Limite: 15:30h do dia anterior)
+                </div>
+            ` : ''}
+
+            <!-- Botão de Salvar no Vermelho Militar Premium -->
+            <div>
+                <button type="button" 
+                        onclick="salvarArranchamentoUnico('${dataISO}', event)" 
+                        style="width: 100%; padding: 16px; font-size: 16px; font-weight: 700; background-color: #7A0C0C; color: #ffffff; border: none; border-radius: 12px; cursor: pointer; transition: background 0.2s ease; box-shadow: 0 4px 12px rgba(122,12,12,0.2);">
+                    SALVAR ARRANCHAMENTO
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Atualiza imediatamente as cores e as badges dos cards renderizados
+    atualizarEstiloVisualCard('cafe');
+    atualizarEstiloVisualCard('almoco');
+    atualizarEstiloVisualCard('jantar');
+}
+
+// Alterna os estados no clique dos cards de refeição
+function alternarEstadoCard(refeicao, dataISO) {
+    window.estadosTemporarios[refeicao] = !window.estadosTemporarios[refeicao];
+    atualizarEstiloVisualCard(refeicao);
+}
+
+// Manipula classes e estilos CSS inline para ficar idêntico ao protótipo profissional
+function atualizarEstiloVisualCard(refeicao) {
+    const card = document.getElementById(`card-${refeicao}`);
+    const badge = document.getElementById(`badge-${refeicao}`);
+    const indicador = document.getElementById(`indicador-${refeicao}`);
+
+    if (!card || !badge || !indicador) return;
+
+    const ativo = window.estadosTemporarios[refeicao];
+
+    if (ativo) {
+        // Estilo Arranchado (Verde Premium)
+        badge.innerText = "Arranchado";
+        badge.style.background = "#DEF7EC";
+        badge.style.color = "#03543F";
+        
+        indicador.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" fill="#0E9F6E"/>
+            </svg>
+        `;
+        indicador.style.background = "#DEF7EC";
+        card.style.borderLeft = "5px solid #0E9F6E";
+    } else {
+        // Estilo Não Solicitado (Cinza Clássico do mockup)
+        badge.innerText = "Não solicitado";
+        badge.style.background = "#E5E7EB";
+        badge.style.color = "#4B5563";
+        
+        indicador.innerHTML = "";
+        indicador.style.background = "#F3F4F6";
+        card.style.borderLeft = "5px solid #9CA3AF";
+    }
 }
 
 function mudarDiaCarrossel(passo) {
@@ -353,7 +455,6 @@ function mudarDiaCarrossel(passo) {
 }
 
 function salvarArranchamentoUnico(dataServico, event) {
-    // Evita que qualquer formulário ou link recarregue a página
     if (event) {
         event.preventDefault();
         event.stopPropagation();
@@ -365,19 +466,12 @@ function salvarArranchamentoUnico(dataServico, event) {
 
     const agora = new Date();
     const partes = dataServico.split('-');
-    
-    // Valida trava das 15:30h do dia anterior na hora de salvar usando a hora local
     const limitePrazo = new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]) - 1, 15, 30, 0, 0);
 
     if (agora > limitePrazo) {
         return alert("Erro: O prazo para alterar esta data encerrou às 15:30h de ontem!");
     }
 
-    const chkCafe = document.getElementById(`cafe-${dataServico}`);
-    const chkAlmoco = document.getElementById(`almoco-${dataServico}`);
-    const chkJantar = document.getElementById(`jantar-${dataServico}`);
-
-    // Garante que o ID usado no Firebase não possua caracteres especiais proibidos
     const usuarioIDLimpo = padronizarTexto(usuarioLogado.usuario);
     const refId = `${usuarioIDLimpo}_${dataServico}`;
     
@@ -385,9 +479,9 @@ function salvarArranchamentoUnico(dataServico, event) {
         usuario: usuarioLogado.usuario,
         reparticao: usuarioLogado.reparticao,
         dataRegistro: dataServico,
-        cafe: chkCafe ? chkCafe.checked : false,
-        almoco: chkAlmoco ? chkAlmoco.checked : false,
-        jantar: chkJantar ? chkJantar.checked : false
+        cafe: window.estadosTemporarios.cafe,
+        almoco: window.estadosTemporarios.almoco,
+        jantar: window.estadosTemporarios.jantar
     }).then(() => {
         alert("Arranchamento salvo com sucesso!");
     }).catch(err => {
