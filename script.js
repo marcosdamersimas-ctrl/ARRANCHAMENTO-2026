@@ -170,11 +170,11 @@ function fazerLogout() {
 // =========================================================================
 function alternarAba(abaDestino) {
     document.querySelectorAll('.aba-conteudo').forEach(el => el.classList.add('hidden'));
-    document.querySelectorAll('.btn-aba').forEach(el => el.classList.remove('ativo'));
+    document.querySelectorAll('.btn-aba').forEach(el => { el.classList.remove('ativo'); el.classList.remove('hidden'); });
 
     if (abaDestino === 'arranchamento') {
         document.getElementById('conteudo-arranchamento').classList.remove('hidden');
-        document.getElementById('btn-aba-arranchamento').classList.add('ativo');
+        document.getElementById('btn-aba-arranchamento').classList.add('hidden');
         renderizarDiasCarrossel();
     } else if (abaDestino === 'relatorio') {
         document.getElementById('conteudo-relatorio').classList.remove('hidden');
@@ -1182,3 +1182,4 @@ function salvarNovaPermissaoMilitar() {
         alert("Erro ao salvar permissão: " + err.message);
     });
 }
+
