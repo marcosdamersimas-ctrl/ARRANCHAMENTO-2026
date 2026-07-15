@@ -198,19 +198,71 @@ function alternarAba(abaDestino) {
     }
 }
 
-function alterarMinhaSenha() {
-    const novaSenha = document.getElementById('senha-nova').value;
-    if (!novaSenha || novaSenha.trim() === '') {
-        return alert("Digite uma senha válida!");
+// =========================================================================
+// SISTEMA SEGURO DE ALTERAÇÃO DE SENHA
+// =========================================================================
+function executarAlteracaoDeSenha() {
+    const senhaAntiga = document.getElementById('input-senha-antiga').value.trim();
+    const senhaNova = document.getElementById('input-senha-nova').value.trim();
+    const senhaConfirmacao = document.getElementById('input-senha-confirmacao').value.trim();
+
+    // 1. Validações básicas de preenchimento
+    if (!senhaAntiga || !senhaNova || !senhaConfirmacao) {
+        return alert("Atenção: Todos os campos de senha são obrigatórios!");
     }
 
-    const usuarioID = padronizarTexto(usuarioLogado.usuario);
-    db.ref('usuarios/' + usuarioID + '/senha').set(novaSenha).then(() => {
-        alert("Senha updated com sucesso!");
-        usuarioLogado.senha = novaSenha;
-        document.getElementById('senha-nova').value = '';
-    }).catch(err => {
-        alert("Erro ao salvar: " + err.message);
+    if (senhaNova.length < 6) {
+        return alert("Erro: A nova senha deve conter no mínimo 6 caracteres.");
+    }
+
+    if (senhaNova !== senhaConfirmacao) {
+        return alert("Erro: A nova senha e a confirmação não coincidem!");
+    }
+
+    if (senhaAntiga === senhaNova) {
+        return alert("Aviso: A nova senha não pode ser idêntica à senha atual.");
+    }
+
+    // 2. Identifica quem é o usuário atualmente logado
+    // (Ajuste 'usuarioLogadoId' ou o método que você usa para obter o ID ou nome de guerra do militar atual)
+    const idMilitarAtual = localStorage.getItem('usuarioLogadoId') || sessionStorage.getItem('usuarioLogadoId') || (window.usuarioLogado && window.usuarioLogado.id);
+
+    if (!idMilitarAtual) {
+        return alert("Erro: Sessão do usuário expirou ou não foi encontrada. Faça login novamente.");
+    }
+
+    // 3. Busca a senha atual registrada no banco para validação de segurança
+    db.ref('usuarios/' + idMilitarAtual).once('value').then((snapshot) => {
+        if (!snapshot.exists()) {
+            return alert("Erro: Registro do militar não localizado no banco de dados.");
+        }
+
+        const dadosMilitar = snapshot.val();
+        const senhaSalvaNoBanco = dadosMilitar.senha || dadosMilitar.password;
+
+        // 4. Valida se a senha antiga confere com o banco
+        if (senhaAntiga !== senhaSalvaNoBanco) {
+            return alert("Erro: A senha atual digitada está incorreta!");
+        }
+
+        // 5. Se tudo estiver correto, atualiza a senha no banco de dados
+        db.ref('usuarios/' + idMilitarAtual).update({
+            senha: senhaNova // Ajuste para 'password' se seu banco salvar com essa chave
+        }).then(() => {
+            alert("Senha alterada com sucesso!");
+            
+            // Limpa os campos do formulário por segurança
+            document.getElementById('input-senha-antiga').value = "";
+            document.getElementById('input-senha-nova').value = "";
+            document.getElementById('input-senha-confirmacao').value = "";
+        }).catch((err) => {
+            console.error("Erro ao atualizar senha no Firebase:", err);
+            alert("Erro ao gravar nova senha: " + err.message);
+        });
+
+    }).catch((err) => {
+        console.error("Erro ao validar credenciais no Firebase:", err);
+        alert("Erro na verificação de segurança: " + err.message);
     });
 }
 
