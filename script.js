@@ -876,55 +876,6 @@ function excluirUsuario(usuarioID, nomeMilitar) {
 }
 
 // =========================================================================
-// FUNÇÃO PARA EXCLUIR MILITAR DO SISTEMA (PAINEL ADMIN)
-// =========================================================================
-function excluirMilitarDoSistema() {
-    const idMilitarSelecionado = document.getElementById('select-militar-permissoes').value;
-
-    if (!idMilitarSelecionado) {
-        return alert("Erro: Selecione um militar na lista para poder excluir!");
-    }
-
-    // 1. Identifica quem é o usuário logado para evitar autoexclusão
-    let idLogado = null;
-    if (typeof usuarioLogado !== 'undefined' && usuarioLogado) {
-        const nomeGuerra = usuarioLogado.usuario || usuarioLogado.nomeGuerra;
-        if (nomeGuerra) {
-            idLogado = padronizarTexto(nomeGuerra);
-        }
-    }
-
-    if (idMilitarSelecionado === idLogado) {
-        return alert("Negado: Você não pode excluir sua própria conta de administrador!");
-    }
-
-    // 2. Confirmação de segurança dupla
-    const confirma1 = confirm(`ATENÇÃO:\nTem certeza absoluta de que deseja EXCLUIR permanentemente o militar "${idMilitarSelecionado}" do banco de dados?`);
-    if (!confirma1) return;
-
-    const confirma2 = confirm(`CONFIRMAÇÃO FINAL:\nEsta ação não poderá ser desfeita e removerá todos os dados de acesso de "${idMilitarSelecionado}". Prosseguir?`);
-    if (!confirma2) return;
-
-    // 3. Remove do Firebase
-    db.ref('usuarios/' + idMilitarSelecionado).remove()
-        .then(() => {
-            alert(`Sucesso: O militar "${idMilitarSelecionado}" foi excluído do sistema.`);
-            
-            // Se a função de listar usuários do admin existir, recarrega para atualizar o select
-            if (typeof renderizarListaDeUsuariosParaAdmin === 'function') {
-                renderizarListaDeUsuariosParaAdmin();
-            } else {
-                // Caso contrário, recarrega a página para atualizar as informações
-                window.location.reload();
-            }
-        })
-        .catch((err) => {
-            console.error("Erro ao excluir usuário no Firebase:", err);
-            alert("Erro ao remover militar: " + err.message);
-        });
-}
-
-// =========================================================================
 // SISTEMA DE QR CODE E IMPRESSÃO DE ACESSO
 // =========================================================================
 function gerarQRCodeConexao() {
@@ -1041,4 +992,53 @@ function renderizarListaDeUsuariosParaAdmin() {
     if (typeof inicializarSeletorPermissoes === "function") {
         inicializarSeletorPermissoes();
     }
+}
+
+// =========================================================================
+// FUNÇÃO PARA EXCLUIR MILITAR DO SISTEMA (PAINEL ADMIN)
+// =========================================================================
+function excluirMilitarDoSistema() {
+    const idMilitarSelecionado = document.getElementById('select-militar-permissoes').value;
+
+    if (!idMilitarSelecionado) {
+        return alert("Erro: Selecione um militar na lista para poder excluir!");
+    }
+
+    // 1. Identifica quem é o usuário logado para evitar autoexclusão
+    let idLogado = null;
+    if (typeof usuarioLogado !== 'undefined' && usuarioLogado) {
+        const nomeGuerra = usuarioLogado.usuario || usuarioLogado.nomeGuerra;
+        if (nomeGuerra) {
+            idLogado = padronizarTexto(nomeGuerra);
+        }
+    }
+
+    if (idMilitarSelecionado === idLogado) {
+        return alert("Negado: Você não pode excluir sua própria conta de administrador!");
+    }
+
+    // 2. Confirmação de segurança dupla
+    const confirma1 = confirm(`ATENÇÃO:\nTem certeza absoluta de que deseja EXCLUIR permanentemente o militar "${idMilitarSelecionado}" do banco de dados?`);
+    if (!confirma1) return;
+
+    const confirma2 = confirm(`CONFIRMAÇÃO FINAL:\nEsta ação não poderá ser desfeita e removerá todos os dados de acesso de "${idMilitarSelecionado}". Prosseguir?`);
+    if (!confirma2) return;
+
+    // 3. Remove do Firebase
+    db.ref('usuarios/' + idMilitarSelecionado).remove()
+        .then(() => {
+            alert(`Sucesso: O militar "${idMilitarSelecionado}" foi excluído do sistema.`);
+            
+            // Se a função de listar usuários do admin existir, recarrega para atualizar o select
+            if (typeof renderizarListaDeUsuariosParaAdmin === 'function') {
+                renderizarListaDeUsuariosParaAdmin();
+            } else {
+                // Caso contrário, recarrega a página para atualizar as informações
+                window.location.reload();
+            }
+        })
+        .catch((err) => {
+            console.error("Erro ao excluir usuário no Firebase:", err);
+            alert("Erro ao remover militar: " + err.message);
+        });
 }
