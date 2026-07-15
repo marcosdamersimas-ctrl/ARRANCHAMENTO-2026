@@ -223,9 +223,21 @@ function executarAlteracaoDeSenha() {
         return alert("Aviso: A nova senha não pode ser idêntica à senha atual.");
     }
 
-    // 2. Identifica quem é o usuário atualmente logado
-    // (Ajuste 'usuarioLogadoId' ou o método que você usa para obter o ID ou nome de guerra do militar atual)
-    const idMilitarAtual = localStorage.getItem('usuarioLogadoId') || sessionStorage.getItem('usuarioLogadoId') || (window.usuarioLogado && window.usuarioLogado.id);
+    // 2. Identifica quem é o usuário atualmente logado de forma dinâmica e precisa
+    let idMilitarAtual = null;
+
+    if (typeof usuarioLogado !== 'undefined' && usuarioLogado) {
+        // Se houver um nome de usuário, padroniza ele da mesma forma que no login
+        const nomeGuerra = usuarioLogado.usuario || usuarioLogado.nomeGuerra;
+        if (nomeGuerra) {
+            idMilitarAtual = padronizarTexto(nomeGuerra);
+        }
+    }
+
+    // Fallback de segurança se o método acima falhar
+    if (!idMilitarAtual) {
+        idMilitarAtual = localStorage.getItem('usuarioLogadoId') || sessionStorage.getItem('usuarioLogadoId');
+    }
 
     if (!idMilitarAtual) {
         return alert("Erro: Sessão do usuário expirou ou não foi encontrada. Faça login novamente.");
@@ -234,7 +246,7 @@ function executarAlteracaoDeSenha() {
     // 3. Busca a senha atual registrada no banco para validação de segurança
     db.ref('usuarios/' + idMilitarAtual).once('value').then((snapshot) => {
         if (!snapshot.exists()) {
-            return alert("Erro: Registro do militar não localizado no banco de dados.");
+            return alert("Erro: Registro do militar (" + idMilitarAtual + ") não localizado no banco de dados.");
         }
 
         const dadosMilitar = snapshot.val();
@@ -247,7 +259,7 @@ function executarAlteracaoDeSenha() {
 
         // 5. Se tudo estiver correto, atualiza a senha no banco de dados
         db.ref('usuarios/' + idMilitarAtual).update({
-            senha: senhaNova // Ajuste para 'password' se seu banco salvar com essa chave
+            senha: senhaNova
         }).then(() => {
             alert("Senha alterada com sucesso!");
             
