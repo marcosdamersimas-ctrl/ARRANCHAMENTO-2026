@@ -425,27 +425,31 @@ function atualizarEstiloVisualCard(refeicao) {
     const ativo = window.estadosTemporarios[refeicao];
 
     if (ativo) {
-        // Estilo Arranchado (Verde Premium)
+        // Card totalmente verde quando selecionado
+        card.style.background = "#DEF7EC";
+        card.style.borderLeft = "5px solid #0E9F6E";
+        
         badge.innerText = "Arranchado";
-        badge.style.background = "#DEF7EC";
-        badge.style.color = "#03543F";
+        badge.style.background = "#0E9F6E";
+        badge.style.color = "#ffffff";
         
         indicador.innerHTML = `
             <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" fill="#0E9F6E"/>
+                <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" fill="#ffffff"/>
             </svg>
         `;
-        indicador.style.background = "#DEF7EC";
-        card.style.borderLeft = "5px solid #0E9F6E";
+        indicador.style.background = "#0E9F6E";
     } else {
-        // Estilo N√£o Solicitado (Cinza Cl√°ssico do mockup)
-        badge.innerText = "N√£o solicitado";
+        // Card cinza neutro quando n„o solicitado
+        card.style.background = "#F3F4F6";
+        card.style.borderLeft = "5px solid #9CA3AF";
+        
+        badge.innerText = "N„o solicitado";
         badge.style.background = "#E5E7EB";
         badge.style.color = "#4B5563";
         
         indicador.innerHTML = "";
-        indicador.style.background = "#F3F4F6";
-        card.style.borderLeft = "5px solid #9CA3AF";
+        indicador.style.background = "#E5E7EB";
     }
 }
 
