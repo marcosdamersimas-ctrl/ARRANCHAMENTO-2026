@@ -876,49 +876,6 @@ function excluirUsuario(usuarioID, nomeMilitar) {
 }
 
 // =========================================================================
-// FUNÇÃO PARA SALVAR NOVA PERMISSÃO DO MILITAR (PAINEL ADMIN)
-// =========================================================================
-function salvarNovaPermissaoMilitar() {
-    const idMilitarSelecionado = document.getElementById('select-militar-permissoes').value;
-    const nivelSelecionado = document.getElementById('select-nivel-permissoes').value;
-
-    // 1. Validação de seleção
-    if (!idMilitarSelecionado) {
-        return alert("Erro: Selecione um militar na lista para poder alterar a permissão!");
-    }
-
-    if (!nivelSelecionado) {
-        return alert("Erro: Selecione um nível de permissão válido!");
-    }
-
-    // 2. Mapeia o nível selecionado para o padrão do seu Firebase
-    // (Geralmente "Administrador", "Furriel" ou "Militar")
-    let nivelFormatado = "Militar";
-    if (nivelSelecionado === "admin") {
-        nivelFormatado = "Administrador";
-    } else if (nivelSelecionado === "furriel") {
-        nivelFormatado = "Furriel";
-    }
-
-    // 3. Grava diretamente no Firebase
-    db.ref('usuarios/' + idMilitarSelecionado).update({
-        nivel: nivelFormatado
-    }).then(() => {
-        alert(`Sucesso: Nível de acesso do militar "${idMilitarSelecionado}" alterado para ${nivelFormatado.toUpperCase()}!`);
-        
-        // Atualiza a lista/seletor na tela para refletir o novo nível
-        if (typeof inicializarSeletorPermissoes === 'function') {
-            inicializarSeletorPermissoes();
-        } else {
-            window.location.reload();
-        }
-    }).catch((err) => {
-        console.error("Erro ao atualizar nível de acesso no Firebase:", err);
-        alert("Erro ao salvar permissão: " + err.message);
-    });
-}
-
-// =========================================================================
 // SISTEMA DE QR CODE E IMPRESSÃO DE ACESSO
 // =========================================================================
 function gerarQRCodeConexao() {
@@ -1084,4 +1041,46 @@ function excluirMilitarDoSistema() {
             console.error("Erro ao excluir usuário no Firebase:", err);
             alert("Erro ao remover militar: " + err.message);
         });
+}
+// =========================================================================
+// FUNÇÃO PARA SALVAR NOVA PERMISSÃO DO MILITAR (PAINEL ADMIN)
+// =========================================================================
+function salvarNovaPermissaoMilitar() {
+    const idMilitarSelecionado = document.getElementById('select-militar-permissoes').value;
+    const nivelSelecionado = document.getElementById('select-nivel-permissoes').value;
+
+    // 1. Validação de seleção
+    if (!idMilitarSelecionado) {
+        return alert("Erro: Selecione um militar na lista para poder alterar a permissão!");
+    }
+
+    if (!nivelSelecionado) {
+        return alert("Erro: Selecione um nível de permissão válido!");
+    }
+
+    // 2. Mapeia o nível selecionado para o padrão do seu Firebase
+    // (Geralmente "Administrador", "Furriel" ou "Militar")
+    let nivelFormatado = "Militar";
+    if (nivelSelecionado === "admin") {
+        nivelFormatado = "Administrador";
+    } else if (nivelSelecionado === "furriel") {
+        nivelFormatado = "Furriel";
+    }
+
+    // 3. Grava diretamente no Firebase
+    db.ref('usuarios/' + idMilitarSelecionado).update({
+        nivel: nivelFormatado
+    }).then(() => {
+        alert(`Sucesso: Nível de acesso do militar "${idMilitarSelecionado}" alterado para ${nivelFormatado.toUpperCase()}!`);
+        
+        // Atualiza a lista/seletor na tela para refletir o novo nível
+        if (typeof inicializarSeletorPermissoes === 'function') {
+            inicializarSeletorPermissoes();
+        } else {
+            window.location.reload();
+        }
+    }).catch((err) => {
+        console.error("Erro ao atualizar nível de acesso no Firebase:", err);
+        alert("Erro ao salvar permissão: " + err.message);
+    });
 }
