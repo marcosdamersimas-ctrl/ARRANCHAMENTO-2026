@@ -1,181 +1,245 @@
-/* RESET E CORES GLOBAIS (TEMA ESCURO) */
+/* =========================================================================
+   ARRANCHA+ TEMA RESPONSIVO (MOBILE-FIRST)
+   Mantém integridade de IDs, Classes e Estruturas para funcionamento do JS
+   ========================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Raleway:wght@700;800&display=swap');
+
+/* RESET E DIRETRIZES TIPO APLICATIVO */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Montserrat', sans-serif;
 }
 
 body {
-    background-color: #1a1a1a; /* Cinza Escuro */
-    color: #f5f5f5;
+    background-color: #F3F3F3; /* Fundo Cinza Claro Limpo do App */
+    color: #1E1E1E; /* Textos Escuros */
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     min-height: 100vh;
-    padding: 20px;
+    padding: 10px;
 }
 
+/* CONTAINER PRINCIPAL ESTILO TELEFONE */
 .app-container {
-    background-color: #262626; /* Cinza um pouco mais claro para contraste */
+    background-color: #FFFFFF; /* Cartão Branco Principal */
     width: 100%;
-    max-width: 500px;
-    border-radius: 8px;
-    padding: 25px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-    border: 1px solid #d4af37; /* Borda Dourada */
+    max-width: 480px; /* Largura ideal de tela de celular */
+    border-radius: 16px; /* Bordas mais arredondadas e modernas */
+    padding: 20px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08); /* Sombra suave moderna */
+    border: 1px solid #E0E0E0;
+    margin-bottom: 20px;
 }
 
-/* Ocultar Abas */
+/* Ocultar Abas (Mantém o controle do JS) */
 .hidden {
     display: none !important;
 }
 
-/* HEADER */
+/* HEADER - ARRANCHA+ */
 .app-header {
     text-align: center;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
+    padding: 10px 0;
 }
 
+/* Logo "7" reestilizada com fonte Raleway Bold */
 .logo-7 {
-    font-size: 32pt;
-    font-weight: bold;
-    color: #a60000; /* Vermelho */
-    text-shadow: 2px 2px 0px #d4af37; /* Sombra Dourada */
-    margin-bottom: 5px;
+    font-family: 'Raleway', sans-serif;
+    font-size: 36pt;
+    font-weight: 800;
+    color: #7A0C0C; /* Vinho Oficial */
+    text-shadow: 1px 1px 0px #C9A227; /* Sombra Dourada Sutil */
+    margin-bottom: 2px;
 }
 
+/* Título ARRANCHA+ */
 h1 {
-    font-size: 16pt;
-    color: #d4af37; /* Dourado */
-    letter-spacing: 1px;
+    font-family: 'Raleway', sans-serif;
+    font-size: 18pt;
+    font-weight: 800;
+    color: #7A0C0C; /* Vinho Oficial */
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
 }
 
 .sub-logo {
-    font-size: 10pt;
-    color: #aaa;
+    font-size: 9.5pt;
+    color: #666;
     margin-top: 2px;
+    font-weight: 600;
 }
 
-/* FORMULÁRIOS */
+/* FORMULÁRIOS ESTILO APP CLEAN */
 .input-group {
-    margin-bottom: 15px;
+    margin-bottom: 16px;
     display: flex;
     flex-direction: column;
 }
 
 .input-group label {
-    font-size: 9.5pt;
-    color: #d4af37; /* Dourado */
-    margin-bottom: 5px;
-    font-weight: 600;
+    font-size: 9pt;
+    color: #1E1E1E;
+    margin-bottom: 6px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .input-group input, .input-group select {
-    background-color: #333;
-    color: #fff;
-    border: 1px solid #555;
-    padding: 10px;
-    border-radius: 4px;
+    background-color: #F9F9F9;
+    color: #1E1E1E;
+    border: 1px solid #D9D9D9;
+    padding: 12px;
+    border-radius: 8px;
     font-size: 10pt;
     outline: none;
+    transition: all 0.2s ease-in-out;
 }
 
 .input-group input:focus, .input-group select:focus {
-    border-color: #d4af37;
+    border-color: #7A0C0C; /* Foco Vinho */
+    background-color: #FFF;
+    box-shadow: 0 0 0 3px rgba(122, 12, 12, 0.1);
 }
 
-/* BOTÕES DOURADOS COM LETRAS PRETAS */
+/* BOTÕES ESTILO APP MOBILE */
 .btn {
     width: 100%;
-    padding: 12px;
+    padding: 14px;
     border: none;
-    border-radius: 4px;
-    font-size: 10.5pt;
-    font-weight: bold;
+    border-radius: 8px;
+    font-size: 11pt;
+    font-weight: 700;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s ease;
     margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
 }
 
+/* Botões Principais em Vinho (#7A0C0C) com Letras Brancas */
 .btn-primary, .btn-success {
-    background-color: #d4af37; /* Dourado */
-    color: #000000; /* Letras Pretas */
+    background-color: #7A0C0C;
+    color: #FFFFFF;
 }
 
 .btn-primary:hover, .btn-success:hover {
-    background-color: #aa8c2c;
+    background-color: #5E0909;
 }
 
+/* Botão Sair / Logout */
 .btn-logout {
-    background-color: #a60000; /* Vermelho */
-    color: #fff;
+    background-color: #F1F1F1;
+    color: #7A0C0C;
+    border: 1px solid rgba(122, 12, 12, 0.2);
 }
 
 .btn-logout:hover {
-    background-color: #7a0000;
+    background-color: #E8D5D5;
 }
 
 .aviso-cadastro {
     font-size: 8.5pt;
-    color: #999;
+    color: #666;
 }
 
-/* MENU DE ABAS */
+/* MENU DE ABAS SUPERIOR (Estilo Navegador de Aplicativo) */
 .abas-menu {
     display: flex;
-    gap: 5px;
+    gap: 6px;
     margin-bottom: 20px;
-    border-bottom: 1px solid #d4af37;
-    padding-bottom: 8px;
+    border-bottom: 2px solid #E0E0E0;
+    padding-bottom: 10px;
     overflow-x: auto;
 }
 
 .btn-aba {
     flex: 1;
-    background: #333;
-    border: 1px solid #555;
-    color: #ccc;
-    padding: 8px 5px;
-    font-size: 9pt;
-    font-weight: bold;
+    background: #F1F1F1;
+    border: 1px solid #D9D9D9;
+    color: #666;
+    padding: 10px 6px;
+    font-size: 8.5pt;
+    font-weight: 700;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: 6px;
     white-space: nowrap;
+    transition: all 0.2s;
 }
 
 .btn-aba.ativo {
-    background-color: #d4af37; /* Dourado */
-    color: #000; /* Letras Pretas */
-    border-color: #d4af37;
+    background-color: #7A0C0C; /* Aba ativa fica Vinho */
+    color: #FFFFFF; /* Letras Brancas */
+    border-color: #7A0C0C;
 }
 
-/* CARROSSEL E SELEÇÃO */
-.calendario-topo-container {
-    background: #333;
-    padding: 10px;
-    border-radius: 4px;
+/* BARRA DE SAUDAÇÃO E STATUS DO USUÁRIO */
+.militar-saudacao {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 9.5pt;
     margin-bottom: 15px;
-    border-left: 4px solid #a60000;
+    background: #F9F9F9;
+    padding: 8px 14px;
+    border-radius: 30px;
+    border: 1px solid #E0E0E0;
+    font-weight: 600;
+}
+
+.user-badge {
+    color: #7A0C0C;
+    font-weight: 700;
+}
+
+/* CARROSSÉIS E AGENDAMENTO DE DIAS */
+.calendario-topo-container {
+    background: #FFF9F9;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border-left: 4px solid #7A0C0C;
+    border-top: 1px solid #F3D9D9;
+    border-right: 1px solid #F3D9D9;
+    border-bottom: 1px solid #F3D9D9;
 }
 
 .carrossel-dias {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: #1a1a1a;
+    background: #FFFFFF;
     padding: 15px;
-    border-radius: 6px;
+    border-radius: 12px;
     margin: 15px 0;
-    border: 1px solid #444;
+    border: 1px solid #E0E0E0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
 }
 
 .btn-seta {
-    background: none;
+    background: #F1F1F1;
     border: none;
-    color: #d4af37;
-    font-size: 16pt;
+    color: #7A0C0C;
+    font-size: 14pt;
     cursor: pointer;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.btn-seta:hover {
+    background: #E8D5D5;
 }
 
 .dia-box {
@@ -184,113 +248,115 @@ h1 {
 }
 
 .dia-box h3 {
-    font-size: 11pt;
-    color: #fff;
-    margin-bottom: 10px;
+    font-size: 12pt;
+    color: #1E1E1E;
+    font-weight: 700;
+    margin-bottom: 12px;
 }
 
+/* CHECKBOXES DAS REFEIÇÕES */
 .checkbox-group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     text-align: left;
-    max-width: 180px;
+    max-width: 190px;
     margin: 0 auto;
 }
 
 .checkbox-group label {
-    font-size: 10pt;
+    font-size: 10.5pt;
     cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .prazo-encerrado {
     display: block;
-    font-size: 8.5pt;
-    color: #a60000;
-    margin-top: 8px;
-    font-weight: bold;
+    font-size: 9pt;
+    color: #7A0C0C;
+    margin-top: 10px;
+    font-weight: 700;
 }
 
-/* TABELAS INTERNAS DE PREVIEW */
+/* TABELAS INTERNAS DE PREVIEW E RELATÓRIOS */
 .card {
-    background: #333;
-    padding: 15px;
-    border-radius: 6px;
+    background: #FFFFFF;
+    padding: 16px;
+    border-radius: 12px;
     margin-bottom: 15px;
+    border: 1px solid #E0E0E0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
 .card h2 {
-    font-size: 11pt;
-    color: #d4af37;
+    font-size: 11.5pt;
+    color: #7A0C0C;
     margin-bottom: 12px;
-    border-bottom: 1px solid #444;
-    padding-bottom: 5px;
+    border-bottom: 1px solid #E5E5E5;
+    padding-bottom: 8px;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
 }
 
 .tabela-preview {
     width: 100%;
     border-collapse: collapse;
     margin-top: 10px;
-    background: #222;
-    font-size: 9pt;
+    background: #FFFFFF;
+    font-size: 9.5pt;
 }
 
 .tabela-preview th, .tabela-preview td {
-    border: 1px solid #444;
-    padding: 6px;
+    border: 1px solid #E5E5E5;
+    padding: 8px;
     text-align: center;
-    color: #fff;
+    color: #1E1E1E;
 }
 
 .tabela-preview th {
-    background: #111;
-    color: #d4af37;
+    background: #F9F9F9;
+    color: #7A0C0C;
+    font-weight: 700;
 }
 
-/* ADMIN LIST */
+/* LINHAS DO PAINEL ADMIN */
 .admin-user-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #222;
-    padding: 8px;
-    margin-bottom: 6px;
-    border-radius: 4px;
-    border-left: 3px solid #d4af37;
+    background: #F9F9F9;
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    border-left: 4px solid #C9A227; /* Detalhe em Dourado */
+    border-top: 1px solid #E0E0E0;
+    border-right: 1px solid #E0E0E0;
+    border-bottom: 1px solid #E0E0E0;
 }
 
 .admin-user-info {
     display: flex;
     flex-direction: column;
-    font-size: 9pt;
+    font-size: 9.5pt;
+    font-weight: 600;
 }
 
 .admin-user-info span {
-    color: #888;
-    font-size: 8pt;
+    color: #666;
+    font-size: 8.5pt;
+    font-weight: 400;
 }
 
 .select-role-admin {
-    background: #333;
-    color: #fff;
-    border: 1px solid #555;
-    font-size: 8.5pt;
-    padding: 3px;
-    border-radius: 3px;
-}
-
-.militar-saudacao {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 9.5pt;
-    margin-bottom: 10px;
-    background: #333;
-    padding: 6px 12px;
-    border-radius: 20px;
-}
-
-.user-badge {
-    color: #d4af37;
-    font-weight: bold;
+    background: #FFFFFF;
+    color: #1E1E1E;
+    border: 1px solid #CCCCCC;
+    font-size: 9pt;
+    padding: 4px 8px;
+    border-radius: 4px;
+    outline: none;
 }
