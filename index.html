@@ -208,7 +208,7 @@
                 <button class="btn btn-success" style="margin-top:5px;" onclick="incluirUsuarioViaAdmin()">➕ Adicionar Usuário</button>
             </div>
 
-            <!-- NOVO GERENCIADOR DE PERMISSÕES INTELIGENTE -->
+<!-- NOVO GERENCIADOR DE PERMISSÕES INTELIGENTE -->
 <div class="card-controle" style="background: #222; padding: 20px; border-radius: 8px; border: 1px solid #d4af37; margin-bottom: 20px;">
     <h2 style="color: #d4af37; margin-top: 0; font-size: 16px; border-bottom: 1px solid #444; padding-bottom: 10px; text-transform: uppercase;">Controle de Nível de Acesso</h2>
     
@@ -231,10 +231,18 @@
             </select>
         </div>
 
-        <!-- Botão para Salvar -->
-        <button type="button" onclick="salvarNovaPermissaoMilitar()" style="width: 100%; padding: 12px; font-size: 12pt; font-weight: bold; background-color: #d4af37; color: #000; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px;">
-            💾 Salvar Permissão do Militar
-        </button>
+        <!-- Área de Ações -->
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+            <!-- Botão para Salvar -->
+            <button type="button" onclick="salvarNovaPermissaoMilitar()" style="width: 100%; padding: 12px; font-size: 12pt; font-weight: bold; background-color: #d4af37; color: #000; border: none; border-radius: 4px; cursor: pointer;">
+                💾 Salvar Permissão do Militar
+            </button>
+
+            <!-- Botão Vermelho para Excluir -->
+            <button type="button" onclick="excluirMilitarDoSistema()" style="width: 100%; padding: 12px; font-size: 12pt; font-weight: bold; background-color: #b22222; color: #fff; border: none; border-radius: 4px; cursor: pointer;">
+                ❌ Excluir Militar do Sistema
+            </button>
+        </div>
     </div>
 </div>
                 
