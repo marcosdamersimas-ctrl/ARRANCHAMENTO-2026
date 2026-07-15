@@ -1,11 +1,7 @@
 /* =========================================================================
-   ARRANCHA+ TEMA RESPONSIVO (MOBILE-FIRST)
-   Mantém integridade de IDs, Classes e Estruturas para funcionamento do JS
+   ARRANCHA+ ESTILOS GLOBAIS - VERSÃO 3.0
    ========================================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Raleway:wght@700;800&display=swap');
-
-/* RESET E DIRETRIZES TIPO APLICATIVO */
 * {
     margin: 0;
     padding: 0;
@@ -14,67 +10,70 @@
 }
 
 body {
-    background-color: #F3F3F3; /* Fundo Cinza Claro Limpo do App */
-    color: #1E1E1E; /* Textos Escuros */
+    background-color: #F3F3F3; /* Fundo cinza claro idêntico ao protótipo */
+    color: #1E1E1E;
     display: flex;
     justify-content: center;
     align-items: flex-start;
     min-height: 100vh;
-    padding: 10px;
+    padding: 20px 10px;
 }
 
-/* CONTAINER PRINCIPAL ESTILO TELEFONE */
+/* CONTAINER PRINCIPAL (ESTILO DISPOSITIVO MÓVEL) */
 .app-container {
-    background-color: #FFFFFF; /* Cartão Branco Principal */
+    background-color: #FFFFFF;
     width: 100%;
-    max-width: 480px; /* Largura ideal de tela de celular */
-    border-radius: 16px; /* Bordas mais arredondadas e modernas */
-    padding: 20px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08); /* Sombra suave moderna */
-    border: 1px solid #E0E0E0;
-    margin-bottom: 20px;
+    max-width: 450px; /* Alinhamento estrito mobile-first */
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1px solid #EAEAEA;
+    transition: all 0.3s ease;
 }
 
-/* Ocultar Abas (Mantém o controle do JS) */
+/* Controle de ocultação de abas pelo JS */
 .hidden {
     display: none !important;
 }
 
-/* HEADER - ARRANCHA+ */
+/* HEADER DO APLICATIVO */
 .app-header {
     text-align: center;
-    margin-bottom: 20px;
-    padding: 10px 0;
+    margin-bottom: 24px;
 }
 
-/* Logo "7" reestilizada com fonte Raleway Bold */
+.app-logo-img {
+    width: 90px;
+    height: 90px;
+    object-fit: contain;
+    margin: 0 auto 10px auto;
+    display: block;
+}
+
 .logo-7 {
     font-family: 'Raleway', sans-serif;
-    font-size: 36pt;
+    font-size: 28pt;
     font-weight: 800;
     color: #7A0C0C; /* Vinho Oficial */
-    text-shadow: 1px 1px 0px #C9A227; /* Sombra Dourada Sutil */
-    margin-bottom: 2px;
+    margin-bottom: 4px;
 }
 
-/* Título ARRANCHA+ */
 h1 {
     font-family: 'Raleway', sans-serif;
     font-size: 18pt;
     font-weight: 800;
-    color: #7A0C0C; /* Vinho Oficial */
+    color: #7A0C0C;
     letter-spacing: 0.5px;
-    text-transform: uppercase;
 }
 
 .sub-logo {
-    font-size: 9.5pt;
+    font-size: 10pt;
     color: #666;
-    margin-top: 2px;
     font-weight: 600;
+    margin-top: 4px;
 }
 
-/* FORMULÁRIOS ESTILO APP CLEAN */
+/* FORMULÁRIOS & INPUTS MODERNOS */
 .input-group {
     margin-bottom: 16px;
     display: flex;
@@ -82,8 +81,8 @@ h1 {
 }
 
 .input-group label {
-    font-size: 9pt;
-    color: #1E1E1E;
+    font-size: 8.5pt;
+    color: #7A0C0C;
     margin-bottom: 6px;
     font-weight: 700;
     text-transform: uppercase;
@@ -94,37 +93,60 @@ h1 {
     background-color: #F9F9F9;
     color: #1E1E1E;
     border: 1px solid #D9D9D9;
-    padding: 12px;
-    border-radius: 8px;
+    padding: 12px 14px;
+    border-radius: 10px;
     font-size: 10pt;
+    font-weight: 600;
     outline: none;
-    transition: all 0.2s ease-in-out;
+    transition: all 0.2s ease;
 }
 
 .input-group input:focus, .input-group select:focus {
-    border-color: #7A0C0C; /* Foco Vinho */
-    background-color: #FFF;
+    border-color: #7A0C0C;
+    background-color: #FFFFFF;
     box-shadow: 0 0 0 3px rgba(122, 12, 12, 0.1);
 }
 
-/* BOTÕES ESTILO APP MOBILE */
+/* CONTAINER DE SENHA COM OLHO */
+.input-password-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.input-password-wrapper input {
+    width: 100%;
+    padding-right: 45px;
+}
+
+.btn-view-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 13pt;
+}
+
+/* BOTÕES ESTILO APP */
 .btn {
     width: 100%;
     padding: 14px;
     border: none;
-    border-radius: 8px;
-    font-size: 11pt;
+    border-radius: 10px;
+    font-size: 10.5pt;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s ease;
-    margin-top: 10px;
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-/* Botões Principais em Vinho (#7A0C0C) com Letras Brancas */
 .btn-primary, .btn-success {
     background-color: #7A0C0C;
     color: #FFFFFF;
@@ -134,11 +156,25 @@ h1 {
     background-color: #5E0909;
 }
 
-/* Botão Sair / Logout */
+.btn-danger {
+    background-color: #B22222;
+    color: #FFFFFF;
+}
+
+.btn-danger:hover {
+    background-color: #8B1A1A;
+}
+
+.btn-purple {
+    background-color: #5D2596;
+    color: #FFFFFF;
+}
+
 .btn-logout {
     background-color: #F1F1F1;
     color: #7A0C0C;
-    border: 1px solid rgba(122, 12, 12, 0.2);
+    border: 1px solid rgba(122, 12, 12, 0.15);
+    margin-top: 20px;
 }
 
 .btn-logout:hover {
@@ -146,16 +182,27 @@ h1 {
 }
 
 .aviso-cadastro {
-    font-size: 8.5pt;
+    font-size: 8pt;
     color: #666;
+    text-align: center;
+    margin-top: 20px;
+    line-height: 1.4;
 }
 
-/* MENU DE ABAS SUPERIOR (Estilo Navegador de Aplicativo) */
+.creditos {
+    font-size: 7.5pt;
+    color: #C9A227;
+    display: block;
+    margin-top: 8px;
+    font-weight: 600;
+}
+
+/* MENU DE NAVEGAÇÃO DE ABAS */
 .abas-menu {
     display: flex;
-    gap: 6px;
+    gap: 4px;
     margin-bottom: 20px;
-    border-bottom: 2px solid #E0E0E0;
+    border-bottom: 2px solid #EAEAEA;
     padding-bottom: 10px;
     overflow-x: auto;
 }
@@ -163,35 +210,35 @@ h1 {
 .btn-aba {
     flex: 1;
     background: #F1F1F1;
-    border: 1px solid #D9D9D9;
+    border: 1px solid #E0E0E0;
     color: #666;
-    padding: 10px 6px;
-    font-size: 8.5pt;
+    padding: 10px 4px;
+    font-size: 8pt;
     font-weight: 700;
     cursor: pointer;
-    border-radius: 6px;
+    border-radius: 8px;
     white-space: nowrap;
     transition: all 0.2s;
 }
 
 .btn-aba.ativo {
-    background-color: #7A0C0C; /* Aba ativa fica Vinho */
-    color: #FFFFFF; /* Letras Brancas */
+    background-color: #7A0C0C;
+    color: #FFFFFF;
     border-color: #7A0C0C;
 }
 
-/* BARRA DE SAUDAÇÃO E STATUS DO USUÁRIO */
+/* SAUDAÇÃO */
 .militar-saudacao {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 9.5pt;
-    margin-bottom: 15px;
+    font-size: 9pt;
     background: #F9F9F9;
-    padding: 8px 14px;
+    padding: 10px 16px;
     border-radius: 30px;
-    border: 1px solid #E0E0E0;
+    border: 1px solid #EAEAEA;
     font-weight: 600;
+    margin-bottom: 15px;
 }
 
 .user-badge {
@@ -199,16 +246,31 @@ h1 {
     font-weight: 700;
 }
 
-/* CARROSSÉIS E AGENDAMENTO DE DIAS */
+/* CARROSSEL DE DIAS */
 .calendario-topo-container {
     background: #FFF9F9;
     padding: 12px;
-    border-radius: 8px;
-    margin-bottom: 15px;
+    border-radius: 10px;
+    margin-bottom: 16px;
     border-left: 4px solid #7A0C0C;
     border-top: 1px solid #F3D9D9;
     border-right: 1px solid #F3D9D9;
     border-bottom: 1px solid #F3D9D9;
+}
+
+.calendario-topo-container label {
+    font-size: 8.5pt;
+    font-weight: 700;
+    color: #7A0C0C;
+}
+
+.calendario-topo-container input {
+    width: 100%;
+    margin-top: 5px;
+    border: 1px solid #D9D9D9;
+    padding: 8px;
+    border-radius: 6px;
+    outline: none;
 }
 
 .carrossel-dias {
@@ -216,102 +278,67 @@ h1 {
     align-items: center;
     justify-content: space-between;
     background: #FFFFFF;
-    padding: 15px;
-    border-radius: 12px;
+    padding: 16px;
+    border-radius: 14px;
     margin: 15px 0;
-    border: 1px solid #E0E0E0;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    border: 1px solid #EAEAEA;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
 }
 
 .btn-seta {
     background: #F1F1F1;
     border: none;
     color: #7A0C0C;
-    font-size: 14pt;
+    font-size: 13pt;
     cursor: pointer;
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s;
 }
 
 .btn-seta:hover {
     background: #E8D5D5;
 }
 
-.dia-box {
-    text-align: center;
-    width: 100%;
-}
-
 .dia-box h3 {
-    font-size: 12pt;
+    font-size: 11pt;
     color: #1E1E1E;
     font-weight: 700;
     margin-bottom: 12px;
 }
 
-/* CHECKBOXES DAS REFEIÇÕES */
-.checkbox-group {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    text-align: left;
-    max-width: 190px;
-    margin: 0 auto;
-}
-
-.checkbox-group label {
-    font-size: 10.5pt;
-    cursor: pointer;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.prazo-encerrado {
-    display: block;
-    font-size: 9pt;
-    color: #7A0C0C;
-    margin-top: 10px;
-    font-weight: 700;
-}
-
-/* TABELAS INTERNAS DE PREVIEW E RELATÓRIOS */
+/* CARDS E EXIBIÇÕES */
 .card {
     background: #FFFFFF;
     padding: 16px;
-    border-radius: 12px;
-    margin-bottom: 15px;
-    border: 1px solid #E0E0E0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    border-radius: 14px;
+    margin-bottom: 16px;
+    border: 1px solid #EAEAEA;
 }
 
 .card h2 {
-    font-size: 11.5pt;
+    font-size: 11pt;
     color: #7A0C0C;
-    margin-bottom: 12px;
-    border-bottom: 1px solid #E5E5E5;
+    margin-bottom: 14px;
+    border-bottom: 1px solid #EAEAEA;
     padding-bottom: 8px;
     text-transform: uppercase;
     font-weight: 700;
-    letter-spacing: 0.5px;
 }
 
+/* TABELAS */
 .tabela-preview {
     width: 100%;
     border-collapse: collapse;
     margin-top: 10px;
-    background: #FFFFFF;
-    font-size: 9.5pt;
+    font-size: 9pt;
 }
 
 .tabela-preview th, .tabela-preview td {
-    border: 1px solid #E5E5E5;
+    border: 1px solid #EAEAEA;
     padding: 8px;
     text-align: center;
     color: #1E1E1E;
@@ -323,40 +350,27 @@ h1 {
     font-weight: 700;
 }
 
-/* LINHAS DO PAINEL ADMIN */
-.admin-user-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #F9F9F9;
-    padding: 10px;
-    margin-bottom: 8px;
-    border-radius: 8px;
-    border-left: 4px solid #C9A227; /* Detalhe em Dourado */
-    border-top: 1px solid #E0E0E0;
-    border-right: 1px solid #E0E0E0;
-    border-bottom: 1px solid #E0E0E0;
+/* QR CODE */
+.qrcode-container-wrapper {
+    text-align: center;
+    margin-top: 15px;
 }
 
-.admin-user-info {
-    display: flex;
-    flex-direction: column;
-    font-size: 9.5pt;
-    font-weight: 600;
-}
-
-.admin-user-info span {
-    color: #666;
-    font-size: 8.5pt;
-    font-weight: 400;
-}
-
-.select-role-admin {
-    background: #FFFFFF;
-    color: #1E1E1E;
-    border: 1px solid #CCCCCC;
+.qrcode-container-wrapper p {
     font-size: 9pt;
-    padding: 4px 8px;
-    border-radius: 4px;
-    outline: none;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.qrcode-container-wrapper img {
+    border: 4px solid #FFFFFF;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.qrcode-link-text {
+    font-size: 8pt;
+    color: #7A0C0C !important;
+    margin-top: 5px;
+    font-family: monospace;
 }

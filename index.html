@@ -3,17 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Arranchamento - 7º RC Mec</title>
-<link rel="stylesheet" href="style.css?v=2.0">
+    <title>ARRANCHA+ - 7º RC Mec</title>
+    <!-- Fontes oficiais do layout Raleway e Montserrat -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Raleway:wght@700;800&display=swap">
+    <link rel="stylesheet" href="style.css?v=3.0">
 </head>
 <body>
 
-    <!-- TELA DE LOGIN -->
+    <!-- TELA DE LOGIN (ARRANCHA+) -->
     <div id="tela-login" class="app-container">
         <div class="app-header">
-            <div class="logo-7">7</div>
-            <h1>ARRANCHAMENTO</h1>
-            <div class="sub-logo">7º RC Mec</div>
+            <!-- Imagem do cavalo integrada no cabeçalho -->
+            <img src="https://marcosdamersimas-ctrl.github.io/ARRANCHAMENTO-2026/logo.png" alt="7º RC Mec" class="app-logo-img" onerror="this.style.display='none';">
+            <div class="logo-7">7º</div>
+            <h1>ARRANCHA+</h1>
+            <div class="sub-logo">Sistema de Arranchamento</div>
         </div>
 
         <form id="form-login" onsubmit="event.preventDefault(); efetuarAcesso();">
@@ -37,15 +41,14 @@
 
             <div class="input-group">
                 <label for="login-senha">Senha</label>
-                <input type="password" id="login-senha" placeholder="Sua senha" required>
+                <input type="password" id="login-senha" placeholder="Digite sua senha" required>
             </div>
 
-            <button type="submit" class="btn btn-primary">Entrar / Cadastrar</button>
+            <button type="submit" class="btn btn-primary">ENTRAR</button>
         </form>
-        <div class="aviso-cadastro" style="text-align: center; margin-top: 15px;">
+        <div class="aviso-cadastro">
             * Se for seu primeiro acesso, a conta será criada automaticamente com a senha digitada.
-            <br><br>
-            <span style="font-size: 8pt; color: #d4af37; display: block; margin-top: 5px;">
+            <span class="creditos">
                 1ª versão, criado por 1º Sgt Marcos Damer Simas de Oliveira em 10/07/2026
             </span>
         </div>
@@ -109,49 +112,48 @@
             </div>
         </div>
 
-<!-- ABA: ALTERAR SENHA DE ACESSO -->
-<div id="conteudo-senha" class="aba-conteudo hidden">
-    <div class="card-controle" style="background: #222; padding: 20px; border-radius: 8px; border: 1px solid #d4af37; margin-bottom: 20px;">
-        <h2 style="color: #d4af37; margin-top: 0; font-size: 16px; border-bottom: 1px solid #444; padding-bottom: 10px; text-transform: uppercase;">Alterar Senha de Acesso</h2>
-        
-        <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
-            
-            <!-- Campo 1: Senha Antiga -->
-            <div style="display: flex; flex-direction: column; gap: 5px; text-align: left;">
-                <label style="color: #fff; font-size: 11pt; font-weight: bold;">Senha Atual / Antiga:</label>
-                <div style="position: relative; width: 100%;">
-                    <input type="password" id="input-senha-antiga" placeholder="Digite sua senha atual" style="width: 100%; padding: 10px; padding-right: 40px; background: #333; color: #fff; border: 1px solid #d4af37; border-radius: 4px; font-size: 11pt; box-sizing: border-box;">
-                    <button type="button" onclick="const input = document.getElementById('input-senha-antiga'); input.type = input.type === 'password' ? 'text' : 'password'; this.textContent = input.type === 'password' ? '👁️' : '🔒';" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 14px; padding: 0; line-height: 1;">👁️</button>
+        <!-- ABA: ALTERAR SENHA DE ACESSO -->
+        <div id="conteudo-senha" class="aba-conteudo hidden">
+            <div class="card">
+                <h2>Alterar Senha de Acesso</h2>
+                
+                <div class="form-container-senha">
+                    <!-- Campo 1: Senha Antiga -->
+                    <div class="input-group">
+                        <label>Senha Atual / Antiga:</label>
+                        <div class="input-password-wrapper">
+                            <input type="password" id="input-senha-antiga" placeholder="Digite sua senha atual">
+                            <button type="button" class="btn-view-password" onclick="const input = document.getElementById('input-senha-antiga'); input.type = input.type === 'password' ? 'text' : 'password'; this.textContent = input.type === 'password' ? '👁️' : '🔒';">👁️</button>
+                        </div>
+                    </div>
+
+                    <!-- Campo 2: Nova Senha -->
+                    <div class="input-group">
+                        <label>Nova Senha:</label>
+                        <div class="input-password-wrapper">
+                            <input type="password" id="input-senha-nova" placeholder="Mínimo 6 caracteres">
+                            <button type="button" class="btn-view-password" onclick="const input = document.getElementById('input-senha-nova'); input.type = input.type === 'password' ? 'text' : 'password'; this.textContent = input.type === 'password' ? '👁️' : '🔒';">👁️</button>
+                        </div>
+                    </div>
+
+                    <!-- Campo 3: Confirmar Nova Senha -->
+                    <div class="input-group">
+                        <label>Confirme a Nova Senha:</label>
+                        <div class="input-password-wrapper">
+                            <input type="password" id="input-senha-confirmacao" placeholder="Repita a nova senha">
+                            <button type="button" class="btn-view-password" onclick="const input = document.getElementById('input-senha-confirmacao'); input.type = input.type === 'password' ? 'text' : 'password'; this.textContent = input.type === 'password' ? '👁️' : '🔒';">👁️</button>
+                        </div>
+                    </div>
+
+                    <!-- Botão Salvar -->
+                    <button type="button" class="btn btn-primary" onclick="executarAlteracaoDeSenha()">
+                        💾 Salvar Nova Senha
+                    </button>
                 </div>
             </div>
-
-            <!-- Campo 2: Nova Senha -->
-            <div style="display: flex; flex-direction: column; gap: 5px; text-align: left;">
-                <label style="color: #fff; font-size: 11pt; font-weight: bold;">Nova Senha:</label>
-                <div style="position: relative; width: 100%;">
-                    <input type="password" id="input-senha-nova" placeholder="Mínimo 6 caracteres" style="width: 100%; padding: 10px; padding-right: 40px; background: #333; color: #fff; border: 1px solid #d4af37; border-radius: 4px; font-size: 11pt; box-sizing: border-box;">
-                    <button type="button" onclick="const input = document.getElementById('input-senha-nova'); input.type = input.type === 'password' ? 'text' : 'password'; this.textContent = input.type === 'password' ? '👁️' : '🔒';" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 14px; padding: 0; line-height: 1;">👁️</button>
-                </div>
-            </div>
-
-            <!-- Campo 3: Confirmar Nova Senha -->
-            <div style="display: flex; flex-direction: column; gap: 5px; text-align: left;">
-                <label style="color: #fff; font-size: 11pt; font-weight: bold;">Confirme a Nova Senha:</label>
-                <div style="position: relative; width: 100%;">
-                    <input type="password" id="input-senha-confirmacao" placeholder="Repita a nova senha" style="width: 100%; padding: 10px; padding-right: 40px; background: #333; color: #fff; border: 1px solid #d4af37; border-radius: 4px; font-size: 11pt; box-sizing: border-box;">
-                    <button type="button" onclick="const input = document.getElementById('input-senha-confirmacao'); input.type = input.type === 'password' ? 'text' : 'password'; this.textContent = input.type === 'password' ? '👁️' : '🔒';" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 14px; padding: 0; line-height: 1;">👁️</button>
-                </div>
-            </div>
-
-            <!-- Botão Salvar -->
-            <button type="button" onclick="executarAlteracaoDeSenha()" style="width: 100%; padding: 12px; font-size: 12pt; font-weight: bold; background-color: #d4af37; color: #000; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px;">
-                💾 Salvar Nova Senha
-            </button>
         </div>
-    </div>
-</div>
 
-<!-- ABA 3: FURRIEL -->
+        <!-- ABA 3: FURRIEL -->
         <div id="conteudo-furriel" class="aba-conteudo hidden furriel-only">
             <div class="card">
                 <h2>Imprimir Arranchamento Oficial</h2>
@@ -169,7 +171,7 @@
                     </select>
                 </div>
                 <div id="zona-impressao-furriel" class="hidden">
-                    <div class="preview-tabela-container" id="tabela-preview-furriel" style="margin-bottom:15px;"></div>
+                    <div class="preview-tabela-container" id="tabela-preview-furriel"></div>
                     <button class="btn btn-primary" onclick="gerarRelatorioSeparatedPDF('furriel-subdivisao')">🖨️ Exportar PDF Oficial</button>
                 </div>
             </div>
@@ -204,47 +206,49 @@
                         <option value="Administrador">Administrador</option>
                     </select>
                 </div>
-                <button class="btn btn-success" style="margin-top:5px;" onclick="incluirUsuarioViaAdmin()">➕ Adicionar Usuário</button>
+                <button class="btn btn-success" onclick="incluirUsuarioViaAdmin()">➕ Adicionar Usuário</button>
             </div>
 
-<!-- NOVO GERENCIADOR DE PERMISSÕES INTELIGENTE -->
-<div class="card-controle" style="background: #222; padding: 20px; border-radius: 8px; border: 1px solid #d4af37; margin-bottom: 20px;">
-    <h2 style="color: #d4af37; margin-top: 0; font-size: 16px; border-bottom: 1px solid #444; padding-bottom: 10px; text-transform: uppercase;">Controle de Nível de Acesso</h2>
-    
-    <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
-        <!-- Seletor 1: Selecionar o Militar -->
-        <div style="display: flex; flex-direction: column; gap: 5px; text-align: left;">
-            <label style="color: #fff; font-size: 11pt; font-weight: bold;">1. Selecione o Militar:</label>
-            <select id="select-militar-permissoes" style="width: 100%; padding: 10px; background: #333; color: #fff; border: 1px solid #d4af37; border-radius: 4px; font-size: 11pt;">
-                <option value="">Carregando militares...</option>
-            </select>
-        </div>
+            <!-- GERENCIADOR DE PERMISSÕES INTELIGENTE -->
+            <div class="card">
+                <h2>Controle de Nível de Acesso</h2>
+                
+                <div class="form-container-admin">
+                    <!-- Seletor 1: Selecionar o Militar -->
+                    <div class="input-group">
+                        <label>1. Selecione o Militar:</label>
+                        <select id="select-militar-permissoes">
+                            <option value="">Carregando militares...</option>
+                        </select>
+                    </div>
 
-        <!-- Seletor 2: Definir Nível de Permissão -->
-        <div style="display: flex; flex-direction: column; gap: 5px; text-align: left;">
-            <label style="color: #fff; font-size: 11pt; font-weight: bold;">2. Definir Nível de Permissão:</label>
-            <select id="select-nivel-permissoes" style="width: 100%; padding: 10px; background: #333; color: #fff; border: 1px solid #d4af37; border-radius: 4px; font-size: 11pt;">
-                <option value="usuario">Usuário</option>
-                <option value="furriel">Furriel</option>
-                <option value="admin">Admin</option>
-            </select>
-        </div>
+                    <!-- Seletor 2: Definir Nível de Permissão -->
+                    <div class="input-group">
+                        <label>2. Definir Nível de Permissão:</label>
+                        <select id="select-nivel-permissoes">
+                            <option value="usuario">Usuário</option>
+                            <option value="furriel">Furriel</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
 
-        <!-- Área de Ações -->
-        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
-            <!-- Botão para Salvar -->
-            <button type="button" onclick="salvarNovaPermissaoMilitar()" style="width: 100%; padding: 12px; font-size: 12pt; font-weight: bold; background-color: #d4af37; color: #000; border: none; border-radius: 4px; cursor: pointer;">
-                💾 Salvar Permissão do Militar
-            </button>
+                    <!-- Área de Ações -->
+                    <div class="admin-actions-wrapper">
+                        <!-- Botão para Salvar -->
+                        <button type="button" class="btn btn-primary" onclick="salvarNovaPermissaoMilitar()">
+                            💾 Salvar Permissão do Militar
+                        </button>
 
-            <!-- Botão Vermelho para Excluir -->
-            <button type="button" onclick="excluirMilitarDoSistema()" style="width: 100%; padding: 12px; font-size: 12pt; font-weight: bold; background-color: #b22222; color: #fff; border: none; border-radius: 4px; cursor: pointer;">
-                ❌ Excluir Militar do Sistema
-            </button>
-        </div>
-    </div>
-</div>
+                        <!-- Botão Vermelho para Excluir -->
+                        <button type="button" class="btn btn-danger" onclick="excluirMilitarDoSistema()">
+                            ❌ Excluir Militar do Sistema
+                        </button>
+                    </div>
+                </div>
+            </div>
 
+            <!-- IMPRIMIR PAINEL MASTER -->
+            <div class="card">
                 <h2>Imprimir via Painel Master</h2>
                 <div class="input-group">
                     <label for="admin-subdivisao-print">Selecione para Imprimir Direct:</label>
@@ -258,26 +262,30 @@
                         <option value="OFICIAIS">Oficiais</option>
                     </select>
                 </div>
-                <button class="btn btn-primary" style="margin-bottom: 20px;" onclick="gerarRelatorioSeparatedPDF('admin-subdivisao-print')">🖨️ Imprimir Arranchamento</button>
+                <button class="btn btn-primary" onclick="gerarRelatorioSeparatedPDF('admin-subdivisao-print')">🖨| Imprimir Arranchamento</button>
+            </div>
 
-<!-- CONEXÃO MOBILE VIA QR CODE -->
+            <!-- CONEXÃO MOBILE VIA QR CODE -->
+            <div class="card">
                 <h2>Acesso Mobile</h2>
-                <button class="btn btn-primary" style="background: #5d2596; border-color: #4a1c7a;" onclick="gerarQRCodeConexao()">📱 Gerar QRCode de Acesso</button>
-                <div id="container-qrcode" style="text-align: center; margin-top: 15px; display: none;">
-                    <p style="font-size: 9pt; color: #fff; margin-bottom: 8px;">Escaneie com a câmera do celular para abrir o sistema:</p>
-                    <img id="img-qrcode" src="" alt="QR Code" style="border: 4px solid #fff; border-radius: 5px; background: #fff;">
-                    <p id="txt-url-qrcode" style="font-size: 8pt; color: #d4af37; margin-top: 5px; font-family: monospace;"></p>
+                <button class="btn btn-purple" onclick="gerarQRCodeConexao()">📱 Gerar QRCode de Acesso</button>
+                <div id="container-qrcode" class="qrcode-container-wrapper">
+                    <p>Escaneie com a câmera do celular para abrir o sistema:</p>
+                    <img id="img-qrcode" src="" alt="QR Code">
+                    <p id="txt-url-qrcode" class="qrcode-link-text"></p>
                 </div>
-            </div> <!-- Fim da seção interna (ex: container-scroll ou similar) -->
+            </div>
 
-            <!-- Botão Sair colocado DENTRO da moldura dourada centralizada -->
-            <button class="btn btn-logout" onclick="fazerLogout()" style="width: 100%; max-width: 320px; display: block; margin: 20px auto 0 auto; padding: 15px; background: #990000; color: #fff; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">🔒 Sair do Sistema</button>
-            
-        </div> <!-- Fim do Painel de Controle (Moldura Dourada) -->
-    </div> <!-- Fim do container principal -->    </div>
-<!-- Scripts do Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-<script src="script.js"></script>
+        </div> <!-- Fim do Conteúdo Admin -->
+
+        <!-- Botão Sair centralizado no rodapé do aplicativo -->
+        <button class="btn btn-logout" onclick="fazerLogout()">🔒 Sair do Sistema</button>
+
+    </div> <!-- Fim do container principal -->
+
+    <!-- Scripts do Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
