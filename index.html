@@ -10,50 +10,53 @@
 </head>
 <body>
 
-    <!-- TELA DE LOGIN (ARRANCHA+) -->
-    <div id="tela-login" class="app-container">
-        <div class="app-header">
-            <!-- Imagem do cavalo integrada no cabeçalho -->
-            <img src="https://marcosdamersimas-ctrl.github.io/ARRANCHAMENTO-2026/logo.png" alt="7º RC Mec" class="app-logo-img" onerror="this.style.display='none';">
-            <div class="logo-7">7º</div>
-            <h1>ARRANCHA+</h1>
-            <div class="sub-logo">Sistema de Arranchamento</div>
-        </div>
-
-        <form id="form-login" onsubmit="event.preventDefault(); efetuarAcesso();">
-            <div class="input-group">
-                <label for="login-reparticao">Esquadrão / Subdivisão</label>
-                <select id="login-reparticao">
-                    <option value="Fanfarra">Fanfarra</option>
-                    <option value="1º Esqd">1º Esqd C Mec</option>
-                    <option value="2º Esqd">2º Esqd C Mec</option>
-                    <option value="3º Esqd">3º Esqd C Mec</option>
-                    <option value="Esqd C Ap">Esqd Comando e Apoio</option>
-                    <option value="ST/SGT">ST / SGT</option>
-                    <option value="OFICIAIS">Oficiais</option>
-                </select>
+<!-- TELA DE LOGIN (ARRANCHA+ PRIVADO ESTILO STUDIO) -->
+    <div id="tela-login" class="login-body">
+        <div class="login-container">
+            <!-- Brasão Redondo no Topo com a foto do cavalo -->
+            <div class="login-logo">
+                <img src="cavalo.png" alt="7º RC Mec" onerror="this.src='https://marcosdamersimas-ctrl.github.io/ARRANCHAMENTO-2026/logo.png';">
             </div>
 
-            <div class="input-group">
-                <label for="login-usuario">Nome de Guerra</label>
-                <input type="text" id="login-usuario" placeholder="Ex: Sgt Silva" required>
-            </div>
+            <h1 class="login-title">ARRANCHA<span>+</span></h1>
+            <div class="login-subtitle">ARRANCHAMENTO INTELIGENTE & CONTROLE DE EFETIVO</div>
 
-            <div class="input-group">
-                <label for="login-senha">Senha</label>
-                <input type="password" id="login-senha" placeholder="Digite sua senha" required>
-            </div>
+            <form id="form-login" onsubmit="event.preventDefault(); efetuarAcesso();">
+                <div class="input-group">
+                    <label for="login-reparticao">Esquadrão / Subdivisão</label>
+                    <select id="login-reparticao" class="login-input">
+                        <option value="Fanfarra">Fanfarra</option>
+                        <option value="1º Esqd">1º Esqd C Mec</option>
+                        <option value="2º Esqd">2º Esqd C Mec</option>
+                        <option value="3º Esqd">3º Esqd C Mec</option>
+                        <option value="Esqd C Ap">Esqd Comando e Apoio</option>
+                        <option value="ST/SGT">ST / SGT</option>
+                        <option value="OFICIAIS">Oficiais</option>
+                    </select>
+                </div>
 
-            <button type="submit" class="btn btn-primary">ENTRAR</button>
-        </form>
-        <div class="aviso-cadastro">
-            * Se for seu primeiro acesso, a conta será criada automaticamente com a senha digitada.
-            <span class="creditos">
-                1ª versão, criado por 1º Sgt Marcos Damer Simas de Oliveira em 10/07/2026
-            </span>
+                <div class="input-group">
+                    <label for="login-usuario">Militar (Nome de Guerra)</label>
+                    <input type="text" id="login-usuario" class="login-input" placeholder="Ex: Sgt Silva" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="login-senha">Senha de Acesso</label>
+                    <input type="password" id="login-senha" class="login-input" placeholder="Digite sua senha" required>
+                </div>
+
+                <button type="submit" class="btn-login">ENTRAR NO SISTEMA ›</button>
+            </form>
+
+            <div class="aviso-cadastro" style="margin-top: 20px; font-size: 0.75rem; color: rgba(255,255,255,0.4); text-align: center; line-height: 1.4;">
+                * Se for seu primeiro acesso, a conta será criada automaticamente com a senha digitada.
+                <span class="creditos" style="display: block; margin-top: 15px; color: #c5a059; font-size: 0.65rem; letter-spacing: 1px; text-transform: uppercase;">
+                    7º Regimento de Cavalaria Mecanizado<br>Sant'Ana do Livramento - RS
+                </span>
+            </div>
         </div>
     </div>
-
+    
     <!-- PAINEL DO SISTEMA -->
     <div id="painel-sistema" class="app-container hidden">
         <div class="app-header">
