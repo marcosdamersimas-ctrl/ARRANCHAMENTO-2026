@@ -381,7 +381,7 @@ h1 {
 /* Corpo da página de login com a foto do cavalo como marca d'água de fundo */
 body, .login-body {
     background-color: #0b0202 !important; 
-    background-image: linear-gradient(rgba(11, 2, 2, 0.83), rgba(11, 2, 2, 0.83)), url('https://marcosdamersimas-ctrl.github.io/ARRANCHAMENTO-2026/military_horse_1784224758994.jpg') !important;
+    background-image: linear-gradient(rgba(11, 2, 2, 0.88), rgba(11, 2, 2, 0.88)), url('https://images.unsplash.com/photo-1598974357801-cbca100e6563?q=80&w=1920&auto=format&fit=crop') !important;
     background-size: cover !important;
     background-position: center center !important;
     background-attachment: fixed !important;
